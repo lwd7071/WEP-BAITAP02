@@ -102,19 +102,5 @@ JSP View <----------------------------+
 - `controller`, `filter`: HTTP flow, Session/Cookie và authorization.
 - `WEB-INF/views`: JSP không thể truy cập trực tiếp.
 
-## Kịch bản quay video nộp bài
-
-1. Mở cấu trúc project, `pom.xml`, `persistence.xml` và ba entity.
-2. Chạy `mvn clean test` để chứng minh unit test pass.
-3. Đăng ký tài khoản mới, đăng nhập và giải thích Session.
-4. Logout; đăng nhập Admin có chọn ghi nhớ, đóng/mở lại trình duyệt để chứng minh Cookie.
-5. Trình diễn phân quyền Admin/Manager/User.
-6. Trình diễn thêm Category bằng URL, thêm bằng upload, sửa không đổi ảnh, tìm kiếm, phân trang và xóa.
-7. Mở SSMS chứng minh dữ liệu nằm trong `jakartaJPA` và câu SQL do Hibernate sinh trong log Tomcat.
-8. Chạy JPA smoke test Category - Video và cho thấy transaction rollback.
-
-## GitHub
-
-Remote nộp bài: <https://github.com/lwd7071/WEP-BAITAP02>
 
 Không commit `.env`, mật khẩu SQL Server, thư mục `uploads` hoặc output `target`.
