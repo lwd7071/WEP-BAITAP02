@@ -1,0 +1,14 @@
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<header class="topbar">
+    <a class="brand" href="${pageContext.request.contextPath}/waiting">
+        <span class="brand-mark">J</span>
+        <span>JPA Category</span>
+    </a>
+    <nav>
+        <c:if test="${sessionScope.account.roleId == 1}">
+            <a href="${pageContext.request.contextPath}/admin/categories">Danh mục</a>
+        </c:if>
+        <span class="user-chip"><c:out value="${sessionScope.account.fullName}"/></span>
+        <a class="link-danger" href="${pageContext.request.contextPath}/logout">Đăng xuất</a>
+    </nav>
+</header>
