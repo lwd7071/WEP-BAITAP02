@@ -44,7 +44,7 @@ class UserServiceImplTest {
 
     @Test
     void registerCreatesDefaultMember() {
-        assertTrue(service.register("member@example.com", "1234", "member", "Người dùng", "0909"));
+        assertTrue(service.register("member@example.com", "1234", "member", "Người dùng", "0909123456"));
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userDao).insert(captor.capture());
         assertEquals(3, captor.getValue().getRoleId());
@@ -133,5 +133,30 @@ class UserServiceImplTest {
         assertSame(updated, result);
         verify(userDao, never()).existsByPhoneAndNotId(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyInt());
         verify(userDao).updateProfile(1, "Nguyen Van A", null, null);
+    }
+
+    @Test
+    void updateProfile_throwsException_whenFullNameIsTooShort() {
+        assertThrows(IllegalArgumentException.class, () ->
+                service.updateProfile(1, "A", "0909123456", null));
+    }
+
+    @Test
+    void updateProfile_throwsException_whenPhoneIsNot10Digits() {
+        // Nhập chữ
+        assertThrows(IllegalArgumentException.class, () ->
+                service.updateProfile(1, "Nguyen Van A", "aaa", null));
+
+        // Thiếu số
+        assertThrows(IllegalArgumentException.class, () ->
+                service.updateProfile(1, "Nguyen Van A", "0909123", null));
+
+        // Thừa số
+        assertThrows(IllegalArgumentException.class, () ->
+                service.updateProfile(1, "Nguyen Van A", "090912345678", null));
+
+        // Không bắt đầu bằng 0
+        assertThrows(IllegalArgumentException.class, () ->
+                service.updateProfile(1, "Nguyen Van A", "1234567890", null));
     }
 }

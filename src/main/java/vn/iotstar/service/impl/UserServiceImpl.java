@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 public class UserServiceImpl implements IUserService {
     private static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
+    private static final Pattern PHONE = Pattern.compile("^0\\d{9}$");
     private final IUserDao userDao;
 
     public UserServiceImpl() {
@@ -33,7 +34,7 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public boolean register(String email, String password, String username, String fullName, String phone) {
-        validateRegistration(email, password, username, fullName);
+        validateRegistration(email, password, username, fullName, phone);
         if (checkExistEmail(email) || checkExistUsername(username) || checkExistPhone(phone)) {
             return false;
         }
@@ -71,14 +72,23 @@ public class UserServiceImpl implements IUserService {
         if (fullName == null || fullName.isBlank()) {
             throw new IllegalArgumentException("Họ tên không được để trống");
         }
-        String normalizedPhone = normalize(phone);
-        if (normalizedPhone != null && checkExistPhoneForUser(normalizedPhone, userId)) {
-            throw new IllegalArgumentException("Số điện thoại đã được sử dụng");
+        String trimmedFullName = fullName.trim();
+        if (trimmedFullName.length() < 2 || trimmedFullName.length() > 50) {
+            throw new IllegalArgumentException("Họ tên phải từ 2 đến 50 ký tự");
         }
-        return userDao.updateProfile(userId, fullName.trim(), normalizedPhone, normalize(avatar));
+        String normalizedPhone = normalize(phone);
+        if (normalizedPhone != null) {
+            if (!PHONE.matcher(normalizedPhone).matches()) {
+                throw new IllegalArgumentException("Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0");
+            }
+            if (checkExistPhoneForUser(normalizedPhone, userId)) {
+                throw new IllegalArgumentException("Số điện thoại đã được sử dụng");
+            }
+        }
+        return userDao.updateProfile(userId, trimmedFullName, normalizedPhone, normalize(avatar));
     }
 
-    private void validateRegistration(String email, String password, String username, String fullName) {
+    private void validateRegistration(String email, String password, String username, String fullName, String phone) {
         if (email == null || !EMAIL.matcher(email.trim()).matches()) {
             throw new IllegalArgumentException("Email không hợp lệ");
         }
@@ -90,6 +100,13 @@ public class UserServiceImpl implements IUserService {
         }
         if (fullName == null || fullName.isBlank()) {
             throw new IllegalArgumentException("Họ tên không được để trống");
+        }
+        String trimmedFullName = fullName.trim();
+        if (trimmedFullName.length() < 2 || trimmedFullName.length() > 50) {
+            throw new IllegalArgumentException("Họ tên phải từ 2 đến 50 ký tự");
+        }
+        if (phone != null && !phone.isBlank() && !PHONE.matcher(phone.trim()).matches()) {
+            throw new IllegalArgumentException("Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0");
         }
     }
 

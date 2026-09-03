@@ -78,12 +78,15 @@
                                 </div>
 
                                 <label>Họ và tên
-                                    <input type="text" name="fullName" required maxlength="255"
+                                    <input type="text" name="fullName" required minlength="2" maxlength="50"
+                                        placeholder="Nhập họ và tên (2-50 ký tự)"
                                         value="${fn:escapeXml(user.fullName)}">
                                 </label>
 
                                 <label>Số điện thoại
-                                    <input type="text" name="phone" maxlength="30" placeholder="Chưa có số điện thoại"
+                                    <input type="tel" name="phone" pattern="0[0-9]{9}" maxlength="10"
+                                        placeholder="0xxxxxxxxx (10 chữ số)"
+                                        title="Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0"
                                         value="${fn:escapeXml(user.phone)}">
                                 </label>
 
