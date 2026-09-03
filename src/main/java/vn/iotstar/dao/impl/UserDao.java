@@ -56,6 +56,46 @@ public class UserDao implements IUserDao {
         return exists("phone", phone);
     }
 
+    @Override
+    public boolean existsByPhoneAndNotId(String phone, int id) {
+        if (phone == null || phone.isBlank()) {
+            return false;
+        }
+        try (EntityManager entityManager = JpaConfig.getEntityManager()) {
+            Long count = entityManager.createQuery(
+                            "SELECT COUNT(u) FROM User u WHERE u.phone = :phone AND u.id != :id", Long.class)
+                    .setParameter("phone", phone.trim())
+                    .setParameter("id", id)
+                    .getSingleResult();
+            return count > 0;
+        }
+    }
+
+    @Override
+    public User updateProfile(int id, String fullName, String phone, String avatar) {
+        EntityTransaction transaction = null;
+        try (EntityManager entityManager = JpaConfig.getEntityManager()) {
+            transaction = entityManager.getTransaction();
+            transaction.begin();
+            User user = entityManager.find(User.class, id);
+            if (user == null) {
+                throw new IllegalArgumentException("Không tìm thấy người dùng");
+            }
+            user.setFullName(fullName);
+            user.setPhone(phone);
+            if (avatar != null && !avatar.isBlank()) {
+                user.setAvatar(avatar);
+            }
+            transaction.commit();
+            return user;
+        } catch (RuntimeException exception) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw exception;
+        }
+    }
+
     private boolean exists(String property, String value) {
         if (value == null || value.isBlank()) {
             return false;

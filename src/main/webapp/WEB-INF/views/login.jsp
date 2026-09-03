@@ -8,13 +8,7 @@
     <%@ include file="partials/head.jspf" %>
 </head>
 <body class="auth-page">
-<main class="auth-shell">
-    <section class="auth-intro">
-        <div class="eyebrow">BÀI TẬP 02 · JAKARTA JPA</div>
-        <h1>Quản lý danh mục<br>bằng JPA API.</h1>
-        <p>MVC 3 tầng, Session, Cookie, Hibernate và SQL Server trong một ứng dụng Servlet hoàn chỉnh.</p>
-        <div class="stack-list"><span>Java 21</span><span>Tomcat 11</span><span>Hibernate 7.4</span></div>
-    </section>
+<main class="auth-shell centered">
     <section class="auth-card">
         <div class="card-heading">
             <span class="brand-mark">J</span>

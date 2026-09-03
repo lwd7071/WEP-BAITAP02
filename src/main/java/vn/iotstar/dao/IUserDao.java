@@ -8,4 +8,6 @@ public interface IUserDao {
     boolean existsByEmail(String email);
     boolean existsByUsername(String username);
     boolean existsByPhone(String phone);
+    boolean existsByPhoneAndNotId(String phone, int id);
+    User updateProfile(int id, String fullName, String phone, String avatar);
 }

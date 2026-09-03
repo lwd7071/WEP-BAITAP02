@@ -1,4 +1,5 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <header class="topbar">
     <a class="brand" href="${pageContext.request.contextPath}/waiting">
         <span class="brand-mark">J</span>
@@ -8,7 +9,21 @@
         <c:if test="${sessionScope.account.roleId == 1}">
             <a href="${pageContext.request.contextPath}/admin/categories">Danh mục</a>
         </c:if>
-        <span class="user-chip"><c:out value="${sessionScope.account.fullName}"/></span>
+        <c:choose>
+            <c:when test="${fn:startsWith(sessionScope.account.avatar, 'http://') or fn:startsWith(sessionScope.account.avatar, 'https://')}">
+                <c:set var="topbarAvatar" value="${sessionScope.account.avatar}"/>
+            </c:when>
+            <c:when test="${not empty sessionScope.account.avatar}">
+                <c:url var="topbarAvatar" value="/image"><c:param name="fname" value="${sessionScope.account.avatar}"/></c:url>
+            </c:when>
+            <c:otherwise>
+                <c:set var="topbarAvatar" value="${pageContext.request.contextPath}/assets/default-category.svg"/>
+            </c:otherwise>
+        </c:choose>
+        <a class="user-chip" href="${pageContext.request.contextPath}/profile" title="Xem thông tin cá nhân">
+            <img class="avatar-mini" src="${fn:escapeXml(topbarAvatar)}" alt="Avatar">
+            <span><c:out value="${sessionScope.account.fullName}"/></span>
+        </a>
         <a class="link-danger" href="${pageContext.request.contextPath}/logout">Đăng xuất</a>
     </nav>
 </header>

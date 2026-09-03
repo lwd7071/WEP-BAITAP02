@@ -34,7 +34,7 @@ public class User implements Serializable {
     private String username;
 
     @NotBlank
-    @Column(name = "full_name", nullable = false, length = 255)
+    @Column(name = "full_name", nullable = false, length = 255, columnDefinition = "nvarchar(255)")
     private String fullName;
 
     @NotBlank

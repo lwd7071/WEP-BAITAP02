@@ -58,6 +58,26 @@ public class UserServiceImpl implements IUserService {
         return userDao.existsByPhone(phone);
     }
 
+    @Override
+    public boolean checkExistPhoneForUser(String phone, int userId) {
+        if (phone == null || phone.isBlank()) {
+            return false;
+        }
+        return userDao.existsByPhoneAndNotId(phone.trim(), userId);
+    }
+
+    @Override
+    public User updateProfile(int userId, String fullName, String phone, String avatar) {
+        if (fullName == null || fullName.isBlank()) {
+            throw new IllegalArgumentException("Họ tên không được để trống");
+        }
+        String normalizedPhone = normalize(phone);
+        if (normalizedPhone != null && checkExistPhoneForUser(normalizedPhone, userId)) {
+            throw new IllegalArgumentException("Số điện thoại đã được sử dụng");
+        }
+        return userDao.updateProfile(userId, fullName.trim(), normalizedPhone, normalize(avatar));
+    }
+
     private void validateRegistration(String email, String password, String username, String fullName) {
         if (email == null || !EMAIL.matcher(email.trim()).matches()) {
             throw new IllegalArgumentException("Email không hợp lệ");
