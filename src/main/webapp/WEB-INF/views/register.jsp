@@ -2,7 +2,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!doctype html>
-<html lang="vi">
+<html lang="vi" class="notranslate">
 <head>
     <title>Đăng ký | JPA Category</title>
     <%@ include file="partials/head.jspf" %>

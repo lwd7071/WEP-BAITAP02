@@ -1,7 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!doctype html>
-<html lang="vi">
+<html lang="vi" class="notranslate">
 <head>
     <title><c:out value="${pageTitle}"/> | JPA Category</title>
     <%@ include file="partials/head.jspf" %>
