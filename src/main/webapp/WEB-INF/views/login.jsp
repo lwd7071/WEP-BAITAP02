@@ -18,7 +18,18 @@
             <div class="alert success"><c:out value="${sessionScope.success}"/></div>
             <c:remove var="success" scope="session"/>
         </c:if>
-        <c:if test="${not empty alert}"><div class="alert error"><c:out value="${alert}"/></div></c:if>
+        <c:if test="${not empty alert}">
+            <div class="alert error">
+                <c:out value="${alert}"/>
+                <c:if test="${not empty unverifiedEmail}">
+                    <div style="margin-top: 8px;">
+                        <a href="${pageContext.request.contextPath}/verify-otp?email=${fn:escapeXml(unverifiedEmail)}" style="color: #ffffff; text-decoration: underline; font-weight: 600;">
+                            👉 Nhấn vào đây để kích hoạt tài khoản bằng mã OTP
+                        </a>
+                    </div>
+                </c:if>
+            </div>
+        </c:if>
         <form action="${pageContext.request.contextPath}/login" method="post" class="form-stack">
             <label>Tài khoản
                 <input name="username" autocomplete="username" required
@@ -28,7 +39,10 @@
                 <input type="password" name="password" autocomplete="current-password" required
                        placeholder="Nhập mật khẩu">
             </label>
-            <label class="check-row"><input type="checkbox" name="remember"> Ghi nhớ đăng nhập trong 30 phút</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 10px 0;">
+                <label class="check-row" style="margin: 0;"><input type="checkbox" name="remember"> Ghi nhớ 30 phút</label>
+                <a href="${pageContext.request.contextPath}/forgot-password" style="font-size: 13px; color: #4338ca; text-decoration: none; font-weight: 500;">Quên mật khẩu?</a>
+            </div>
             <button class="button primary" type="submit">Đăng nhập</button>
         </form>
         <p class="form-foot">Chưa có tài khoản? <a href="${pageContext.request.contextPath}/register">Đăng ký ngay</a></p>

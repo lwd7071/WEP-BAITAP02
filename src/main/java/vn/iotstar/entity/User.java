@@ -53,11 +53,26 @@ public class User implements Serializable {
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;
 
+    @Column(name = "status", nullable = false)
+    private int status = 1;
+
+    @Column(name = "code", length = 50)
+    private String code;
+
+    @Column(name = "otp_expiry")
+    private LocalDateTime otpExpiry;
+
     public User() {
     }
 
     public User(String email, String username, String fullName, String password,
                 String avatar, int roleId, String phone, LocalDateTime createdDate) {
+        this(email, username, fullName, password, avatar, roleId, phone, createdDate, 1, null, null);
+    }
+
+    public User(String email, String username, String fullName, String password,
+                String avatar, int roleId, String phone, LocalDateTime createdDate,
+                int status, String code, LocalDateTime otpExpiry) {
         this.email = email;
         this.username = username;
         this.fullName = fullName;
@@ -66,6 +81,9 @@ public class User implements Serializable {
         this.roleId = roleId;
         this.phone = phone;
         this.createdDate = createdDate;
+        this.status = status;
+        this.code = code;
+        this.otpExpiry = otpExpiry;
     }
 
     @PrePersist
@@ -93,4 +111,10 @@ public class User implements Serializable {
     public void setPhone(String phone) { this.phone = phone; }
     public LocalDateTime getCreatedDate() { return createdDate; }
     public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
+    public int getStatus() { return status; }
+    public void setStatus(int status) { this.status = status; }
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+    public LocalDateTime getOtpExpiry() { return otpExpiry; }
+    public void setOtpExpiry(LocalDateTime otpExpiry) { this.otpExpiry = otpExpiry; }
 }

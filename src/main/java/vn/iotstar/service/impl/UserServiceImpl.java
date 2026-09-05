@@ -24,7 +24,13 @@ public class UserServiceImpl implements IUserService {
     @Override
     public User login(String username, String password) {
         User user = findByUsername(username);
-        return user != null && password != null && password.equals(user.getPassword()) ? user : null;
+        if (user != null && password != null && password.equals(user.getPassword())) {
+            if (user.getStatus() == 0) {
+                throw new IllegalStateException("Tài khoản chưa được kích hoạt. Vui lòng xác thực OTP qua email.");
+            }
+            return user;
+        }
+        return null;
     }
 
     @Override
@@ -33,15 +39,104 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
+    public User findByEmail(String email) {
+        return email == null || email.isBlank() ? null : userDao.findByEmail(email.trim());
+    }
+
+    @Override
     public boolean register(String email, String password, String username, String fullName, String phone) {
         validateRegistration(email, password, username, fullName, phone);
         if (checkExistEmail(email) || checkExistUsername(username) || checkExistPhone(phone)) {
             return false;
         }
+        String otp = generateOtp();
+        LocalDateTime expiry = LocalDateTime.now().plusMinutes(5);
         User user = new User(email.trim(), username.trim(), fullName.trim(), password,
-                null, 3, normalize(phone), LocalDateTime.now());
+                null, 3, normalize(phone), LocalDateTime.now(), 0, otp, expiry);
         userDao.insert(user);
+        vn.iotstar.util.EmailUtil.sendOtpEmail(user.getEmail(), user.getFullName(), otp, "Kích hoạt tài khoản");
         return true;
+    }
+
+    @Override
+    public boolean activateUser(String email, String otp) {
+        if (email == null || email.isBlank() || otp == null || otp.isBlank()) {
+            return false;
+        }
+        User user = userDao.findByEmail(email.trim());
+        if (user == null || user.getStatus() == 1) {
+            return false;
+        }
+        if (user.getCode() == null || !user.getCode().equals(otp.trim())) {
+            throw new IllegalArgumentException("Mã OTP không chính xác");
+        }
+        if (user.getOtpExpiry() != null && LocalDateTime.now().isAfter(user.getOtpExpiry())) {
+            throw new IllegalArgumentException("Mã OTP đã hết hạn, vui lòng yêu cầu mã mới");
+        }
+        userDao.updateStatusAndCode(user.getId(), 1, null);
+        return true;
+    }
+
+    @Override
+    public boolean resendRegistrationOtp(String email) {
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+        User user = userDao.findByEmail(email.trim());
+        if (user == null || user.getStatus() == 1) {
+            return false;
+        }
+        String otp = generateOtp();
+        LocalDateTime expiry = LocalDateTime.now().plusMinutes(5);
+        userDao.updateOtp(user.getId(), otp, expiry);
+        vn.iotstar.util.EmailUtil.sendOtpEmail(user.getEmail(), user.getFullName(), otp, "Kích hoạt tài khoản");
+        return true;
+    }
+
+    @Override
+    public boolean sendForgotPasswordOtp(String emailOrUsername) {
+        if (emailOrUsername == null || emailOrUsername.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng nhập email hoặc tài khoản");
+        }
+        String target = emailOrUsername.trim();
+        User user = userDao.findByEmail(target);
+        if (user == null) {
+            user = userDao.findByUsername(target);
+        }
+        if (user == null) {
+            throw new IllegalArgumentException("Không tìm thấy tài khoản với thông tin đã cung cấp");
+        }
+        String otp = generateOtp();
+        LocalDateTime expiry = LocalDateTime.now().plusMinutes(5);
+        userDao.updateOtp(user.getId(), otp, expiry);
+        vn.iotstar.util.EmailUtil.sendOtpEmail(user.getEmail(), user.getFullName(), otp, "Đặt lại mật khẩu");
+        return true;
+    }
+
+    @Override
+    public boolean resetPassword(String email, String otp, String newPassword) {
+        if (email == null || email.isBlank() || otp == null || otp.isBlank() || newPassword == null) {
+            throw new IllegalArgumentException("Vui lòng nhập đầy đủ thông tin");
+        }
+        if (newPassword.length() < 4) {
+            throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 4 ký tự");
+        }
+        User user = userDao.findByEmail(email.trim());
+        if (user == null) {
+            throw new IllegalArgumentException("Không tìm thấy tài khoản với email này");
+        }
+        if (user.getCode() == null || !user.getCode().equals(otp.trim())) {
+            throw new IllegalArgumentException("Mã OTP không chính xác");
+        }
+        if (user.getOtpExpiry() != null && LocalDateTime.now().isAfter(user.getOtpExpiry())) {
+            throw new IllegalArgumentException("Mã OTP đã hết hạn, vui lòng gửi lại mã mới");
+        }
+        userDao.updatePassword(user.getId(), newPassword);
+        return true;
+    }
+
+    private String generateOtp() {
+        return String.format("%06d", new java.security.SecureRandom().nextInt(1000000));
     }
 
     @Override

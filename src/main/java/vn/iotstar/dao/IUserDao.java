@@ -10,4 +10,9 @@ public interface IUserDao {
     boolean existsByPhone(String phone);
     boolean existsByPhoneAndNotId(String phone, int id);
     User updateProfile(int id, String fullName, String phone, String avatar);
+    User findByEmail(String email);
+    void update(User user);
+    void updateOtp(int id, String code, java.time.LocalDateTime expiry);
+    void updateStatusAndCode(int id, int status, String code);
+    void updatePassword(int id, String newPassword);
 }

@@ -159,4 +159,67 @@ class UserServiceImplTest {
         assertThrows(IllegalArgumentException.class, () ->
                 service.updateProfile(1, "Nguyen Van A", "1234567890", null));
     }
+
+    @Test
+    void login_throwsIllegalStateException_whenAccountIsUnactivated() {
+        User user = new User();
+        user.setUsername("unverified");
+        user.setPassword("123456");
+        user.setStatus(0);
+        when(userDao.findByUsername("unverified")).thenReturn(user);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                service.login("unverified", "123456"));
+        assertTrue(ex.getMessage().contains("chưa được kích hoạt"));
+    }
+
+    @Test
+    void activateUser_activatesAccount_whenOtpMatches() {
+        User user = new User();
+        user.setId(10);
+        user.setEmail("user@example.com");
+        user.setStatus(0);
+        user.setCode("123456");
+        user.setOtpExpiry(java.time.LocalDateTime.now().plusMinutes(5));
+
+        when(userDao.findByEmail("user@example.com")).thenReturn(user);
+
+        boolean result = service.activateUser("user@example.com", "123456");
+        assertTrue(result);
+        verify(userDao).updateStatusAndCode(10, 1, null);
+    }
+
+    @Test
+    void activateUser_throwsException_whenOtpMismatch() {
+        User user = new User();
+        user.setId(10);
+        user.setEmail("user@example.com");
+        user.setStatus(0);
+        user.setCode("123456");
+        user.setOtpExpiry(java.time.LocalDateTime.now().plusMinutes(5));
+
+        when(userDao.findByEmail("user@example.com")).thenReturn(user);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                service.activateUser("user@example.com", "999999"));
+    }
+
+    @Test
+    void sendForgotPasswordOtp_and_resetPassword_success() {
+        User user = new User();
+        user.setId(20);
+        user.setEmail("forgot@example.com");
+        user.setCode("654321");
+        user.setOtpExpiry(java.time.LocalDateTime.now().plusMinutes(5));
+
+        when(userDao.findByEmail("forgot@example.com")).thenReturn(user);
+
+        boolean sent = service.sendForgotPasswordOtp("forgot@example.com");
+        assertTrue(sent);
+        verify(userDao).updateOtp(org.mockito.ArgumentMatchers.eq(20), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
+
+        boolean reset = service.resetPassword("forgot@example.com", "654321", "newPass123");
+        assertTrue(reset);
+        verify(userDao).updatePassword(20, "newPass123");
+    }
 }

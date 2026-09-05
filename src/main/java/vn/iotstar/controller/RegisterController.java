@@ -12,7 +12,15 @@ import java.io.IOException;
 
 @WebServlet(urlPatterns = "/register")
 public class RegisterController extends HttpServlet {
-    private final IUserService userService = new UserServiceImpl();
+    private final IUserService userService;
+
+    public RegisterController() {
+        this(new UserServiceImpl());
+    }
+
+    public RegisterController(IUserService userService) {
+        this.userService = userService;
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -41,8 +49,8 @@ public class RegisterController extends HttpServlet {
             if (!userService.register(email, password, username, fullName, phone)) {
                 throw new IllegalArgumentException("Thông tin đăng ký đã tồn tại");
             }
-            request.getSession(true).setAttribute("success", "Đăng ký thành công, vui lòng đăng nhập");
-            response.sendRedirect(request.getContextPath() + "/login");
+            request.getSession(true).setAttribute("success", "Đăng ký thành công! Mã OTP đã được gửi tới email của bạn để kích hoạt.");
+            response.sendRedirect(request.getContextPath() + "/verify-otp?email=" + java.net.URLEncoder.encode(email.trim(), java.nio.charset.StandardCharsets.UTF_8));
         } catch (IllegalArgumentException exception) {
             request.setAttribute("alert", exception.getMessage());
             request.setAttribute("email", email);

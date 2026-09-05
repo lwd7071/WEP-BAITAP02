@@ -16,7 +16,15 @@ import java.io.IOException;
 
 @WebServlet(urlPatterns = "/login")
 public class LoginController extends HttpServlet {
-    private final IUserService userService = new UserServiceImpl();
+    private final IUserService userService;
+
+    public LoginController() {
+        this(new UserServiceImpl());
+    }
+
+    public LoginController(IUserService userService) {
+        this.userService = userService;
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -45,35 +53,42 @@ public class LoginController extends HttpServlet {
         String username = request.getParameter("username");
         String password = request.getParameter("password");
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
-            forwardError(request, response, "Tài khoản và mật khẩu không được để trống", username);
+            forwardError(request, response, "Tài khoản và mật khẩu không được để trống", username, null);
             return;
         }
-        User user = userService.login(username, password);
-        if (user == null) {
-            forwardError(request, response, "Tài khoản hoặc mật khẩu không đúng", username);
-            return;
-        }
-        request.getSession(true).setAttribute(AppConstants.SESSION_ACCOUNT, user);
-        if ("on".equals(request.getParameter("remember"))) {
-            Cookie cookie = new Cookie(AppConstants.COOKIE_REMEMBER, user.getUsername());
-            cookie.setMaxAge(AppConstants.COOKIE_MAX_AGE);
-            cookie.setHttpOnly(true);
-            cookie.setPath(request.getContextPath().isEmpty() ? "/" : request.getContextPath());
-            response.addCookie(cookie);
-        }
-        Object target = request.getSession().getAttribute("redirectAfterLogin");
-        request.getSession().removeAttribute("redirectAfterLogin");
-        if (target instanceof String uri && uri.startsWith(request.getContextPath() + "/")) {
-            response.sendRedirect(uri);
-        } else {
-            response.sendRedirect(request.getContextPath() + "/waiting");
+        try {
+            User user = userService.login(username, password);
+            if (user == null) {
+                forwardError(request, response, "Tài khoản hoặc mật khẩu không đúng", username, null);
+                return;
+            }
+            request.getSession(true).setAttribute(AppConstants.SESSION_ACCOUNT, user);
+            if ("on".equals(request.getParameter("remember"))) {
+                Cookie cookie = new Cookie(AppConstants.COOKIE_REMEMBER, user.getUsername());
+                cookie.setMaxAge(AppConstants.COOKIE_MAX_AGE);
+                cookie.setHttpOnly(true);
+                cookie.setPath(request.getContextPath().isEmpty() ? "/" : request.getContextPath());
+                response.addCookie(cookie);
+            }
+            Object target = request.getSession().getAttribute("redirectAfterLogin");
+            request.getSession().removeAttribute("redirectAfterLogin");
+            if (target instanceof String uri && uri.startsWith(request.getContextPath() + "/")) {
+                response.sendRedirect(uri);
+            } else {
+                response.sendRedirect(request.getContextPath() + "/waiting");
+            }
+        } catch (IllegalStateException exception) {
+            User unverified = userService.findByUsername(username.trim());
+            String unverifiedEmail = unverified != null ? unverified.getEmail() : null;
+            forwardError(request, response, exception.getMessage(), username, unverifiedEmail);
         }
     }
 
     private void forwardError(HttpServletRequest request, HttpServletResponse response,
-                              String message, String username) throws ServletException, IOException {
+                              String message, String username, String unverifiedEmail) throws ServletException, IOException {
         request.setAttribute("alert", message);
         request.setAttribute("rememberedUsername", username);
+        request.setAttribute("unverifiedEmail", unverifiedEmail);
         request.getRequestDispatcher("/WEB-INF/views/login.jsp").forward(request, response);
     }
 }

@@ -43,6 +43,9 @@ class SiteMeshFilterTest {
         // Verify excluded paths
         verify(builder).addExcludedPath("/login");
         verify(builder).addExcludedPath("/register");
+        verify(builder).addExcludedPath("/verify-otp");
+        verify(builder).addExcludedPath("/forgot-password");
+        verify(builder).addExcludedPath("/reset-password");
         verify(builder).addExcludedPath("/assets/*");
         verify(builder).addExcludedPath("/image*");
     }

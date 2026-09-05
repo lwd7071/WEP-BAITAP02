@@ -96,6 +96,99 @@ public class UserDao implements IUserDao {
         }
     }
 
+    @Override
+    public User findByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        try (EntityManager entityManager = JpaConfig.getEntityManager()) {
+            return entityManager.createQuery(
+                            "SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:email)", User.class)
+                    .setParameter("email", email.trim())
+                    .getResultStream()
+                    .findFirst()
+                    .orElse(null);
+        }
+    }
+
+    @Override
+    public void update(User user) {
+        EntityTransaction transaction = null;
+        try (EntityManager entityManager = JpaConfig.getEntityManager()) {
+            transaction = entityManager.getTransaction();
+            transaction.begin();
+            entityManager.merge(user);
+            transaction.commit();
+        } catch (RuntimeException exception) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw exception;
+        }
+    }
+
+    @Override
+    public void updateOtp(int id, String code, java.time.LocalDateTime expiry) {
+        EntityTransaction transaction = null;
+        try (EntityManager entityManager = JpaConfig.getEntityManager()) {
+            transaction = entityManager.getTransaction();
+            transaction.begin();
+            User user = entityManager.find(User.class, id);
+            if (user != null) {
+                user.setCode(code);
+                user.setOtpExpiry(expiry);
+            }
+            transaction.commit();
+        } catch (RuntimeException exception) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw exception;
+        }
+    }
+
+    @Override
+    public void updateStatusAndCode(int id, int status, String code) {
+        EntityTransaction transaction = null;
+        try (EntityManager entityManager = JpaConfig.getEntityManager()) {
+            transaction = entityManager.getTransaction();
+            transaction.begin();
+            User user = entityManager.find(User.class, id);
+            if (user != null) {
+                user.setStatus(status);
+                user.setCode(code);
+                user.setOtpExpiry(null);
+            }
+            transaction.commit();
+        } catch (RuntimeException exception) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw exception;
+        }
+    }
+
+    @Override
+    public void updatePassword(int id, String newPassword) {
+        EntityTransaction transaction = null;
+        try (EntityManager entityManager = JpaConfig.getEntityManager()) {
+            transaction = entityManager.getTransaction();
+            transaction.begin();
+            User user = entityManager.find(User.class, id);
+            if (user != null) {
+                user.setPassword(newPassword);
+                user.setCode(null);
+                user.setOtpExpiry(null);
+            }
+            transaction.commit();
+        } catch (RuntimeException exception) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw exception;
+        }
+    }
+
     private boolean exists(String property, String value) {
         if (value == null || value.isBlank()) {
             return false;
