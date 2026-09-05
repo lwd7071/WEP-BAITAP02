@@ -3,9 +3,8 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!doctype html>
 <html lang="vi">
-<head><title>Sửa danh mục | JPA Category</title><%@ include file="../partials/head.jspf" %></head>
+<head><title>Sửa danh mục | JPA Category</title></head>
 <body>
-<%@ include file="../partials/topbar.jspf" %>
 <main class="page-shell narrow">
     <a class="back-link" href="${pageContext.request.contextPath}/admin/categories">← Quay lại danh sách</a>
     <div class="page-heading"><div><div class="eyebrow">CATEGORY · UPDATE</div><h1>Sửa danh mục</h1><p>Mã danh mục #${category.categoryId}</p></div></div>

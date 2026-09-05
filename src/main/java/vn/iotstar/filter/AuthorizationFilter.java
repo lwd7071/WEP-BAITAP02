@@ -16,9 +16,17 @@ import vn.iotstar.util.AuthUtil;
 
 import java.io.IOException;
 
-@WebFilter(urlPatterns = {"/home", "/manager/*", "/admin/*"})
+@WebFilter(urlPatterns = {"/home", "/manager/*", "/admin/*", "/profile"})
 public class AuthorizationFilter implements Filter {
-    private final IUserService userService = new UserServiceImpl();
+    private final IUserService userService;
+
+    public AuthorizationFilter() {
+        this(new UserServiceImpl());
+    }
+
+    public AuthorizationFilter(IUserService userService) {
+        this.userService = userService;
+    }
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain)

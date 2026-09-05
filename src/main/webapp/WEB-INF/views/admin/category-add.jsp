@@ -3,9 +3,8 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!doctype html>
 <html lang="vi">
-<head><title>Thêm danh mục | JPA Category</title><%@ include file="../partials/head.jspf" %></head>
+<head><title>Thêm danh mục | JPA Category</title></head>
 <body>
-<%@ include file="../partials/topbar.jspf" %>
 <main class="page-shell narrow">
     <a class="back-link" href="${pageContext.request.contextPath}/admin/categories">← Quay lại danh sách</a>
     <div class="page-heading"><div><div class="eyebrow">CATEGORY · CREATE</div><h1>Thêm danh mục</h1><p>Ảnh có thể là URL công khai hoặc file tải lên.</p></div></div>

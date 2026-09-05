@@ -5,10 +5,8 @@
 <html lang="vi">
 <head>
     <title>Quản lý danh mục | JPA Category</title>
-    <%@ include file="../partials/head.jspf" %>
 </head>
 <body>
-<%@ include file="../partials/topbar.jspf" %>
 <main class="page-shell">
     <div class="page-heading">
         <div><div class="eyebrow">ADMIN · CATEGORY</div><h1>Quản lý danh mục</h1><p>CRUD bằng Jakarta Persistence API và SQL Server.</p></div>

@@ -4,10 +4,8 @@
 <html lang="vi" class="notranslate">
 <head>
     <title><c:out value="${pageTitle}"/> | JPA Category</title>
-    <%@ include file="partials/head.jspf" %>
 </head>
 <body>
-<%@ include file="partials/topbar.jspf" %>
 <main class="page-shell">
     <section class="hero-panel">
         <div><div class="eyebrow">ĐĂNG NHẬP THÀNH CÔNG</div><h1><c:out value="${pageTitle}"/></h1><p><c:out value="${pageDescription}"/></p></div>

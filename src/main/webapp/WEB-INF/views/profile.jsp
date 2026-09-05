@@ -4,14 +4,11 @@
             <!doctype html>
             <html lang="vi" class="notranslate">
 
-            <head>
-                <title>Hồ sơ cá nhân | JPA Category</title>
-                <%@ include file="partials/head.jspf" %>
-            </head>
-
-            <body>
-                <%@ include file="partials/topbar.jspf" %>
-                    <main class="page-shell narrow">
+    <head>
+        <title>Hồ sơ cá nhân | JPA Category</title>
+    </head>
+    <body>
+        <main class="page-shell narrow">
                         <div class="page-heading">
                             <div>
                                 <div class="eyebrow">USER PROFILE</div>
