@@ -1,22 +1,36 @@
 USE jakartaJPA;
 GO
 
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET ARITHABORT ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+
 IF OBJECT_ID(N'dbo.users', N'U') IS NULL OR OBJECT_ID(N'dbo.categories', N'U') IS NULL
     THROW 50002, N'Hãy chạy ứng dụng và tạo bảng users/categories trước khi migration.', 1;
+GO
+
+IF COL_LENGTH(N'dbo.categories', N'user_id') IS NULL
+BEGIN
+    EXEC(N'ALTER TABLE dbo.categories ADD user_id INT NULL;');
+END;
 GO
 
 DECLARE @adminId INT = (SELECT TOP 1 id FROM dbo.users WHERE username = N'admin');
 IF @adminId IS NULL
     THROW 50003, N'Không tìm thấy tài khoản admin để gán Category cũ.', 1;
 
-IF COL_LENGTH(N'dbo.categories', N'user_id') IS NULL
-    ALTER TABLE dbo.categories ADD user_id INT NULL;
-
 UPDATE dbo.categories
 SET user_id = @adminId
 WHERE user_id IS NULL;
+GO
 
 ALTER TABLE dbo.categories ALTER COLUMN user_id INT NOT NULL;
+GO
 
 IF NOT EXISTS (
     SELECT 1
