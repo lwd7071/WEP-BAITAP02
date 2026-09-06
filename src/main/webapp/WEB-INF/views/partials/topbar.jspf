@@ -6,6 +6,8 @@
         <span>JPA Category</span>
     </a>
     <nav>
+        <a href="${pageContext.request.contextPath}/product">Sản phẩm</a>
+        <a href="${pageContext.request.contextPath}/products">Quản lý sản phẩm</a>
         <a href="${pageContext.request.contextPath}/categories">Danh mục của tôi</a>
         <c:choose>
             <c:when test="${fn:startsWith(sessionScope.account.avatar, 'http://') or fn:startsWith(sessionScope.account.avatar, 'https://')}">

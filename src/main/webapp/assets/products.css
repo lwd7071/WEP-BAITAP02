@@ -1,0 +1,21 @@
+.section-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; margin:2.5rem 0 1.2rem; }
+.section-heading h2 { margin:0; font-size:1.8rem; }
+.product-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.2rem; }
+.product-card { overflow:hidden; background:var(--card); border:1px solid var(--line); border-radius:20px; color:var(--ink); box-shadow:0 8px 24px rgba(44,58,42,.07); transition:.2s ease; }
+.product-card:hover { transform:translateY(-3px); text-decoration:none; box-shadow:var(--shadow); }
+.product-card > img { width:100%; height:210px; object-fit:cover; background:#edf1e7; }
+.product-card-body { display:grid; gap:.45rem; padding:1.15rem; }
+.product-card-body small { color:var(--green); font-weight:800; }
+.product-card-body h3 { margin:0; }
+.product-card-body strong, .detail-price { color:var(--danger); font-size:1.2rem; }
+.product-card-body span { color:var(--muted); font-size:.85rem; }
+.empty-products { grid-column:1/-1; text-align:center; padding:3rem; background:white; border:1px solid var(--line); border-radius:20px; color:var(--muted); }
+.product-detail { display:grid; grid-template-columns:minmax(280px,1fr) 1fr; gap:clamp(2rem,5vw,5rem); background:white; padding:clamp(1.4rem,4vw,3rem); border-radius:28px; border:1px solid var(--line); box-shadow:var(--shadow); }
+.product-detail > img { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:20px; background:#edf1e7; }
+.product-detail h1 { font-size:clamp(2rem,4vw,3.2rem); }
+.detail-price { font-size:1.7rem; font-weight:900; margin-bottom:1rem; }
+.detail-description { white-space:pre-line; margin-top:1.5rem; color:var(--muted); }
+select, textarea { width:100%; border:1px solid #cbd2c6; background:#fbfcf8; border-radius:12px; padding:.83rem .95rem; color:var(--ink); font:inherit; outline:none; }
+select:focus, textarea:focus { border-color:var(--green); box-shadow:0 0 0 3px rgba(49,92,59,.12); }
+@media (max-width:850px) { .product-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .product-detail { grid-template-columns:1fr; } }
+@media (max-width:560px) { .product-grid { grid-template-columns:1fr; } .section-heading { align-items:flex-start; flex-direction:column; } }
