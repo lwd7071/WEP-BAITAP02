@@ -16,9 +16,7 @@
         <article><span>02</span><h3>Cookie</h3><p>Tùy chọn ghi nhớ hoạt động trong 30 phút.</p></article>
         <article><span>03</span><h3>JPA</h3><p>Dữ liệu được truy cập qua EntityManager và Hibernate.</p></article>
     </section>
-    <c:if test="${sessionScope.account.roleId == 1}">
-        <a class="button primary inline" href="${pageContext.request.contextPath}/admin/categories">Mở quản lý danh mục</a>
-    </c:if>
+    <a class="button primary inline" href="${pageContext.request.contextPath}/categories">Mở danh mục của tôi</a>
 </main>
 </body>
 </html>

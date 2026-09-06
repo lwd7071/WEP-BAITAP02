@@ -41,7 +41,8 @@
             </label>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 10px 0;">
                 <label class="check-row" style="margin: 0;"><input type="checkbox" name="remember"> Ghi nhớ 30 phút</label>
-                <a href="${pageContext.request.contextPath}/forgot-password" style="font-size: 13px; color: #4338ca; text-decoration: none; font-weight: 500;">Quên mật khẩu?</a>
+                <button type="submit" formaction="${pageContext.request.contextPath}/forgot-password" formmethod="post" formnovalidate
+                        style="border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: #4338ca; cursor: pointer; font-weight: 500;">Quên mật khẩu?</button>
             </div>
             <button class="button primary" type="submit">Đăng nhập</button>
         </form>

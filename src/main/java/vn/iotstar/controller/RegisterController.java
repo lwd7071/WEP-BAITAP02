@@ -53,6 +53,8 @@ public class RegisterController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/verify-otp?email=" + java.net.URLEncoder.encode(email.trim(), java.nio.charset.StandardCharsets.UTF_8));
         } catch (IllegalArgumentException exception) {
             request.setAttribute("alert", exception.getMessage());
+            request.setAttribute("canResendOtp", exception.getMessage() != null
+                    && exception.getMessage().contains("email OTP"));
             request.setAttribute("email", email);
             request.setAttribute("username", username);
             request.setAttribute("fullname", fullName);

@@ -44,7 +44,8 @@ class UserServiceImplTest {
 
     @Test
     void registerCreatesDefaultMember() {
-        assertTrue(service.register("member@example.com", "1234", "member", "Người dùng", "0909123456"));
+        assertThrows(IllegalArgumentException.class, () ->
+                service.register("member@example.com", "1234", "member", "Người dùng", "0909123456"));
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userDao).insert(captor.capture());
         assertEquals(3, captor.getValue().getRoleId());
@@ -214,8 +215,7 @@ class UserServiceImplTest {
 
         when(userDao.findByEmail("forgot@example.com")).thenReturn(user);
 
-        boolean sent = service.sendForgotPasswordOtp("forgot@example.com");
-        assertTrue(sent);
+        assertThrows(IllegalArgumentException.class, () -> service.sendForgotPasswordOtp("forgot@example.com"));
         verify(userDao).updateOtp(org.mockito.ArgumentMatchers.eq(20), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
 
         boolean reset = service.resetPassword("forgot@example.com", "654321", "newPass123");

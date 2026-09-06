@@ -6,26 +6,42 @@ import jakarta.persistence.TypedQuery;
 import vn.iotstar.config.JpaConfig;
 import vn.iotstar.dao.ICategoryDao;
 import vn.iotstar.entity.Category;
+import vn.iotstar.entity.User;
 
 import java.util.List;
 
 public class CategoryDao implements ICategoryDao {
     @Override
-    public void insert(Category category) {
-        executeWrite(entityManager -> entityManager.persist(category));
-    }
-
-    @Override
-    public void update(Category category) {
-        executeWrite(entityManager -> entityManager.merge(category));
-    }
-
-    @Override
-    public void delete(int categoryId) {
+    public void insert(Category category, int ownerId) {
         executeWrite(entityManager -> {
-            Category category = entityManager.find(Category.class, categoryId);
+            User owner = entityManager.find(User.class, ownerId);
+            if (owner == null) {
+                throw new IllegalArgumentException("Không tìm thấy tài khoản sở hữu danh mục");
+            }
+            category.setOwner(owner);
+            entityManager.persist(category);
+        });
+    }
+
+    @Override
+    public void update(Category category, int ownerId) {
+        executeWrite(entityManager -> {
+            Category current = findById(entityManager, category.getCategoryId(), ownerId);
+            if (current == null) {
+                throw new IllegalArgumentException("Không tìm thấy danh mục hoặc bạn không có quyền sửa");
+            }
+            current.setCategoryName(category.getCategoryName());
+            current.setImages(category.getImages());
+            current.setStatus(category.getStatus());
+        });
+    }
+
+    @Override
+    public void delete(int categoryId, int ownerId) {
+        executeWrite(entityManager -> {
+            Category category = findById(entityManager, categoryId, ownerId);
             if (category == null) {
-                throw new IllegalArgumentException("Không tìm thấy danh mục có id " + categoryId);
+                throw new IllegalArgumentException("Không tìm thấy danh mục hoặc bạn không có quyền xóa");
             }
             if (!category.getVideos().isEmpty()) {
                 throw new IllegalStateException("Không thể xóa danh mục đang có video liên kết");
@@ -35,18 +51,31 @@ public class CategoryDao implements ICategoryDao {
     }
 
     @Override
-    public Category findById(int categoryId) {
+    public Category findById(int categoryId, int ownerId) {
         try (EntityManager entityManager = JpaConfig.getEntityManager()) {
-            return entityManager.find(Category.class, categoryId);
+            return findById(entityManager, categoryId, ownerId);
         }
     }
 
+    private Category findById(EntityManager entityManager, int categoryId, int ownerId) {
+        return entityManager.createQuery(
+                        "SELECT c FROM Category c WHERE c.categoryId = :categoryId AND c.owner.id = :ownerId",
+                        Category.class)
+                .setParameter("categoryId", categoryId)
+                .setParameter("ownerId", ownerId)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
+    }
+
     @Override
-    public Category findByCategoryName(String name) {
+    public Category findByCategoryName(String name, int ownerId) {
         try (EntityManager entityManager = JpaConfig.getEntityManager()) {
             return entityManager.createQuery(
-                            "SELECT c FROM Category c WHERE LOWER(c.categoryName) = LOWER(:name)", Category.class)
-                    .setParameter("name", name)
+                            "SELECT c FROM Category c WHERE LOWER(c.categoryName) = LOWER(:name) AND c.owner.id = :ownerId",
+                            Category.class)
+                    .setParameter("name", name.trim())
+                    .setParameter("ownerId", ownerId)
                     .getResultStream()
                     .findFirst()
                     .orElse(null);
@@ -54,30 +83,35 @@ public class CategoryDao implements ICategoryDao {
     }
 
     @Override
-    public List<Category> findAll() {
+    public List<Category> findAll(int ownerId) {
         try (EntityManager entityManager = JpaConfig.getEntityManager()) {
-            return entityManager.createNamedQuery("Category.findAll", Category.class).getResultList();
+            return entityManager.createNamedQuery("Category.findAllByOwner", Category.class)
+                    .setParameter("ownerId", ownerId)
+                    .getResultList();
         }
     }
 
     @Override
-    public List<Category> searchByName(String keyword) {
+    public List<Category> searchByName(String keyword, int ownerId) {
         try (EntityManager entityManager = JpaConfig.getEntityManager()) {
             return entityManager.createQuery(
-                            "SELECT c FROM Category c WHERE LOWER(c.categoryName) LIKE LOWER(:keyword) " +
-                                    "ORDER BY c.categoryId", Category.class)
+                            "SELECT c FROM Category c WHERE c.owner.id = :ownerId "
+                                    + "AND LOWER(c.categoryName) LIKE LOWER(:keyword) ORDER BY c.categoryId",
+                            Category.class)
+                    .setParameter("ownerId", ownerId)
                     .setParameter("keyword", "%" + keyword.trim() + "%")
                     .getResultList();
         }
     }
 
     @Override
-    public List<Category> findAll(int page, int pageSize) {
+    public List<Category> findAll(int ownerId, int page, int pageSize) {
         if (page < 0 || pageSize <= 0) {
             throw new IllegalArgumentException("Trang và kích thước trang không hợp lệ");
         }
         try (EntityManager entityManager = JpaConfig.getEntityManager()) {
-            TypedQuery<Category> query = entityManager.createNamedQuery("Category.findAll", Category.class);
+            TypedQuery<Category> query = entityManager.createNamedQuery("Category.findAllByOwner", Category.class);
+            query.setParameter("ownerId", ownerId);
             query.setFirstResult(page * pageSize);
             query.setMaxResults(pageSize);
             return query.getResultList();
@@ -85,9 +119,11 @@ public class CategoryDao implements ICategoryDao {
     }
 
     @Override
-    public int count() {
+    public int count(int ownerId) {
         try (EntityManager entityManager = JpaConfig.getEntityManager()) {
-            return entityManager.createQuery("SELECT COUNT(c) FROM Category c", Long.class)
+            return entityManager.createQuery(
+                            "SELECT COUNT(c) FROM Category c WHERE c.owner.id = :ownerId", Long.class)
+                    .setParameter("ownerId", ownerId)
                     .getSingleResult()
                     .intValue();
         }

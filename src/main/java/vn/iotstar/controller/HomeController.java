@@ -14,16 +14,12 @@ public class HomeController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        if (path.startsWith("/admin/")) {
-            request.setAttribute("pageTitle", "Trang quản trị");
-            request.setAttribute("pageDescription", "Quản lý danh mục và dữ liệu hệ thống bằng JPA.");
-        } else if (path.startsWith("/manager/")) {
-            request.setAttribute("pageTitle", "Trang quản lý");
-            request.setAttribute("pageDescription", "Khu vực dành cho tài khoản quản lý.");
-        } else {
-            request.setAttribute("pageTitle", "Trang người dùng");
-            request.setAttribute("pageDescription", "Đăng nhập Session và Cookie đã hoạt động.");
+        if (!"/home".equals(path)) {
+            response.sendRedirect(request.getContextPath() + "/home");
+            return;
         }
+        request.setAttribute("pageTitle", "Trang quản lý cá nhân");
+        request.setAttribute("pageDescription", "Quản lý danh mục thuộc tài khoản đang đăng nhập.");
         request.getRequestDispatcher("/WEB-INF/views/home.jsp").forward(request, response);
     }
 }

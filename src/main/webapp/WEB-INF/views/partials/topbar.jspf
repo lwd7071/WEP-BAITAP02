@@ -6,9 +6,7 @@
         <span>JPA Category</span>
     </a>
     <nav>
-        <c:if test="${sessionScope.account.roleId == 1}">
-            <a href="${pageContext.request.contextPath}/admin/categories">Danh mục</a>
-        </c:if>
+        <a href="${pageContext.request.contextPath}/categories">Danh mục của tôi</a>
         <c:choose>
             <c:when test="${fn:startsWith(sessionScope.account.avatar, 'http://') or fn:startsWith(sessionScope.account.avatar, 'https://')}">
                 <c:set var="topbarAvatar" value="${sessionScope.account.avatar}"/>

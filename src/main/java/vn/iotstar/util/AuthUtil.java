@@ -27,10 +27,6 @@ public final class AuthUtil {
     }
 
     public static String homeFor(User user, String contextPath) {
-        return switch (user.getRoleId()) {
-            case 1 -> contextPath + "/admin/home";
-            case 2 -> contextPath + "/manager/home";
-            default -> contextPath + "/home";
-        };
+        return contextPath + "/home";
     }
 }

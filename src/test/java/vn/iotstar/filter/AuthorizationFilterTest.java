@@ -51,6 +51,8 @@ class AuthorizationFilterTest {
         String[] patterns = annotation.urlPatterns();
         boolean containsProfile = Arrays.asList(patterns).contains("/profile");
         assertTrue(containsProfile, "AuthorizationFilter must include /profile in its urlPatterns");
+        assertTrue(Arrays.asList(patterns).contains("/categories"));
+        assertTrue(Arrays.asList(patterns).contains("/category/*"));
     }
 
     @Test

@@ -54,7 +54,9 @@ public class UserServiceImpl implements IUserService {
         User user = new User(email.trim(), username.trim(), fullName.trim(), password,
                 null, 3, normalize(phone), LocalDateTime.now(), 0, otp, expiry);
         userDao.insert(user);
-        vn.iotstar.util.EmailUtil.sendOtpEmail(user.getEmail(), user.getFullName(), otp, "Kích hoạt tài khoản");
+        if (!vn.iotstar.util.EmailUtil.sendOtpEmail(user.getEmail(), user.getFullName(), otp, "Kích hoạt tài khoản")) {
+            throw new IllegalArgumentException("Không thể gửi email OTP. Vui lòng kiểm tra cấu hình SMTP hoặc thử gửi lại.");
+        }
         return true;
     }
 
@@ -70,7 +72,7 @@ public class UserServiceImpl implements IUserService {
         if (user.getCode() == null || !user.getCode().equals(otp.trim())) {
             throw new IllegalArgumentException("Mã OTP không chính xác");
         }
-        if (user.getOtpExpiry() != null && LocalDateTime.now().isAfter(user.getOtpExpiry())) {
+        if (user.getOtpExpiry() == null || LocalDateTime.now().isAfter(user.getOtpExpiry())) {
             throw new IllegalArgumentException("Mã OTP đã hết hạn, vui lòng yêu cầu mã mới");
         }
         userDao.updateStatusAndCode(user.getId(), 1, null);
@@ -89,7 +91,9 @@ public class UserServiceImpl implements IUserService {
         String otp = generateOtp();
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(5);
         userDao.updateOtp(user.getId(), otp, expiry);
-        vn.iotstar.util.EmailUtil.sendOtpEmail(user.getEmail(), user.getFullName(), otp, "Kích hoạt tài khoản");
+        if (!vn.iotstar.util.EmailUtil.sendOtpEmail(user.getEmail(), user.getFullName(), otp, "Kích hoạt tài khoản")) {
+            throw new IllegalArgumentException("Không thể gửi email OTP. Vui lòng kiểm tra cấu hình SMTP hoặc thử lại.");
+        }
         return true;
     }
 
@@ -98,19 +102,43 @@ public class UserServiceImpl implements IUserService {
         if (emailOrUsername == null || emailOrUsername.isBlank()) {
             throw new IllegalArgumentException("Vui lòng nhập email hoặc tài khoản");
         }
-        String target = emailOrUsername.trim();
-        User user = userDao.findByEmail(target);
+        User user = userDao.findByEmail(emailOrUsername.trim());
         if (user == null) {
-            user = userDao.findByUsername(target);
+            user = userDao.findByUsername(emailOrUsername.trim());
         }
         if (user == null) {
             throw new IllegalArgumentException("Không tìm thấy tài khoản với thông tin đã cung cấp");
         }
+        if (user.getStatus() == 0) {
+            throw new IllegalArgumentException("Tài khoản chưa được kích hoạt. Vui lòng xác thực OTP qua email trước.");
+        }
+        issuePasswordResetOtp(user);
+        return true;
+    }
+
+    @Override
+    public String requestPasswordReset(String username) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng nhập tên tài khoản trước khi chọn quên mật khẩu");
+        }
+        User user = userDao.findByUsername(username.trim());
+        if (user == null) {
+            throw new IllegalArgumentException("Không tìm thấy tài khoản với tên đã nhập");
+        }
+        if (user.getStatus() == 0) {
+            throw new IllegalArgumentException("Tài khoản chưa được kích hoạt. Vui lòng xác thực OTP qua email trước.");
+        }
+        issuePasswordResetOtp(user);
+        return user.getEmail();
+    }
+
+    private void issuePasswordResetOtp(User user) {
         String otp = generateOtp();
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(5);
         userDao.updateOtp(user.getId(), otp, expiry);
-        vn.iotstar.util.EmailUtil.sendOtpEmail(user.getEmail(), user.getFullName(), otp, "Đặt lại mật khẩu");
-        return true;
+        if (!vn.iotstar.util.EmailUtil.sendOtpEmail(user.getEmail(), user.getFullName(), otp, "Đặt lại mật khẩu")) {
+            throw new IllegalArgumentException("Không thể gửi email OTP. Vui lòng kiểm tra cấu hình SMTP hoặc thử lại.");
+        }
     }
 
     @Override
@@ -128,7 +156,29 @@ public class UserServiceImpl implements IUserService {
         if (user.getCode() == null || !user.getCode().equals(otp.trim())) {
             throw new IllegalArgumentException("Mã OTP không chính xác");
         }
-        if (user.getOtpExpiry() != null && LocalDateTime.now().isAfter(user.getOtpExpiry())) {
+        if (user.getOtpExpiry() == null || LocalDateTime.now().isAfter(user.getOtpExpiry())) {
+            throw new IllegalArgumentException("Mã OTP đã hết hạn, vui lòng gửi lại mã mới");
+        }
+        userDao.updatePassword(user.getId(), newPassword);
+        return true;
+    }
+
+    @Override
+    public boolean resetPassword(int userId, String otp, String newPassword) {
+        if (otp == null || otp.isBlank() || newPassword == null) {
+            throw new IllegalArgumentException("Vui lòng nhập đầy đủ thông tin");
+        }
+        if (newPassword.length() < 4) {
+            throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 4 ký tự");
+        }
+        User user = userDao.findById(userId);
+        if (user == null || user.getStatus() == 0) {
+            throw new IllegalArgumentException("Tài khoản không hợp lệ để đặt lại mật khẩu");
+        }
+        if (user.getCode() == null || !user.getCode().equals(otp.trim())) {
+            throw new IllegalArgumentException("Mã OTP không chính xác");
+        }
+        if (user.getOtpExpiry() == null || LocalDateTime.now().isAfter(user.getOtpExpiry())) {
             throw new IllegalArgumentException("Mã OTP đã hết hạn, vui lòng gửi lại mã mới");
         }
         userDao.updatePassword(user.getId(), newPassword);

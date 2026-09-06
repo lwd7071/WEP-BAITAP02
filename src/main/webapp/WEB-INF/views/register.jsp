@@ -16,7 +16,14 @@
     </section>
     <section class="auth-card wide">
         <div class="card-heading"><span class="brand-mark">J</span><div><h2>Đăng ký</h2><p>Điền đầy đủ thông tin bên dưới</p></div></div>
-        <c:if test="${not empty alert}"><div class="alert error"><c:out value="${alert}"/></div></c:if>
+        <c:if test="${not empty alert}">
+            <div class="alert error">
+                <c:out value="${alert}"/>
+                <c:if test="${canResendOtp and not empty email}">
+                    <div style="margin-top: 8px;"><a href="${pageContext.request.contextPath}/verify-otp?email=${fn:escapeXml(email)}">Mở trang xác minh để gửi lại OTP</a></div>
+                </c:if>
+            </div>
+        </c:if>
         <form action="${pageContext.request.contextPath}/register" method="post" class="form-grid">
             <label>Họ và tên<input name="fullname" required minlength="2" maxlength="50" value="${fn:escapeXml(fullname)}" placeholder="Nguyễn Văn A"></label>
             <label>Tài khoản<input name="username" required minlength="3" maxlength="50" value="${fn:escapeXml(username)}" placeholder="nguyenvana"></label>

@@ -27,10 +27,7 @@
         </c:if>
 
         <form action="${pageContext.request.contextPath}/reset-password" method="post" class="form-stack">
-            <label>Địa chỉ Email
-                <input type="email" name="email" required readonly
-                       value="${fn:escapeXml(email)}" class="input-readonly">
-            </label>
+            <p style="margin: 0 0 8px; color: #64748b; font-size: 14px;">Mã OTP đã được gửi tới <strong>${fn:escapeXml(email)}</strong>.</p>
             <label>Mã OTP (6 chữ số)
                 <input type="text" name="otp" required maxlength="6" pattern="[0-9]{6}"
                        placeholder="Nhập 6 chữ số" autofocus

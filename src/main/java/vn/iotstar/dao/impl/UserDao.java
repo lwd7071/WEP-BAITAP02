@@ -16,9 +16,7 @@ public class UserDao implements IUserDao {
             entityManager.persist(user);
             transaction.commit();
         } catch (RuntimeException exception) {
-            if (transaction != null && transaction.isActive()) {
-                transaction.rollback();
-            }
+            rollbackQuietly(transaction);
             throw exception;
         }
     }
@@ -35,6 +33,13 @@ public class UserDao implements IUserDao {
                     .getResultStream()
                     .findFirst()
                     .orElse(null);
+        }
+    }
+
+    @Override
+    public User findById(int id) {
+        try (EntityManager entityManager = JpaConfig.getEntityManager()) {
+            return entityManager.find(User.class, id);
         }
     }
 
@@ -89,9 +94,7 @@ public class UserDao implements IUserDao {
             transaction.commit();
             return user;
         } catch (RuntimeException exception) {
-            if (transaction != null && transaction.isActive()) {
-                transaction.rollback();
-            }
+            rollbackQuietly(transaction);
             throw exception;
         }
     }
@@ -120,9 +123,7 @@ public class UserDao implements IUserDao {
             entityManager.merge(user);
             transaction.commit();
         } catch (RuntimeException exception) {
-            if (transaction != null && transaction.isActive()) {
-                transaction.rollback();
-            }
+            rollbackQuietly(transaction);
             throw exception;
         }
     }
@@ -140,9 +141,7 @@ public class UserDao implements IUserDao {
             }
             transaction.commit();
         } catch (RuntimeException exception) {
-            if (transaction != null && transaction.isActive()) {
-                transaction.rollback();
-            }
+            rollbackQuietly(transaction);
             throw exception;
         }
     }
@@ -161,9 +160,7 @@ public class UserDao implements IUserDao {
             }
             transaction.commit();
         } catch (RuntimeException exception) {
-            if (transaction != null && transaction.isActive()) {
-                transaction.rollback();
-            }
+            rollbackQuietly(transaction);
             throw exception;
         }
     }
@@ -182,10 +179,17 @@ public class UserDao implements IUserDao {
             }
             transaction.commit();
         } catch (RuntimeException exception) {
-            if (transaction != null && transaction.isActive()) {
-                transaction.rollback();
-            }
+            rollbackQuietly(transaction);
             throw exception;
+        }
+    }
+
+    private void rollbackQuietly(EntityTransaction transaction) {
+        if (transaction != null && transaction.isActive()) {
+            try {
+                transaction.rollback();
+            } catch (Exception ignored) {
+            }
         }
     }
 

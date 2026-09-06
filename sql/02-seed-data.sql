@@ -18,17 +18,21 @@ IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE username = N'member')
     VALUES (N'member@iotstar.vn', N'member', N'Người dùng', N'123456', NULL, 3, N'0900000003', SYSDATETIME());
 GO
 
-IF NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Điện thoại')
-    INSERT INTO dbo.categories (category_name, images, status)
-    VALUES (N'Điện thoại', N'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800', 1);
+DECLARE @adminId INT = (SELECT TOP 1 id FROM dbo.users WHERE username = N'admin');
+IF @adminId IS NULL
+    THROW 50004, N'Không tìm thấy tài khoản admin để seed Category.', 1;
 
-IF NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Máy tính')
-    INSERT INTO dbo.categories (category_name, images, status)
-    VALUES (N'Máy tính', N'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800', 1);
+IF NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Điện thoại' AND user_id = @adminId)
+    INSERT INTO dbo.categories (category_name, images, status, user_id)
+    VALUES (N'Điện thoại', N'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800', 1, @adminId);
 
-IF NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Phụ kiện')
-    INSERT INTO dbo.categories (category_name, images, status)
-    VALUES (N'Phụ kiện', NULL, 0);
+IF NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Máy tính' AND user_id = @adminId)
+    INSERT INTO dbo.categories (category_name, images, status, user_id)
+    VALUES (N'Máy tính', N'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800', 1, @adminId);
+
+IF NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Phụ kiện' AND user_id = @adminId)
+    INSERT INTO dbo.categories (category_name, images, status, user_id)
+    VALUES (N'Phụ kiện', NULL, 0, @adminId);
 GO
 
 PRINT N'Đã seed tài khoản và danh mục mẫu.';

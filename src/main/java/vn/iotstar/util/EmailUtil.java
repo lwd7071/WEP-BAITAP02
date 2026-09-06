@@ -52,18 +52,13 @@ public final class EmailUtil {
         String user = getEnv("SMTP_USER", getEnv("EMAIL_USER", null));
         String pass = getEnv("SMTP_PASSWORD", getEnv("EMAIL_PASSWORD", null));
 
-        // Dev Fallback: In mã ra console nếu chưa cấu hình tài khoản gửi mail
+        // Không giả lập gửi mail trong môi trường chạy thật: nếu thiếu cấu hình,
+        // service phải biết để báo lỗi và cho người dùng gửi lại OTP sau.
         if (user == null || pass == null || user.isBlank() || pass.isBlank()) {
             LOGGER.log(Level.INFO, """
-                    \n======================================================
-                    [DEV EMAIL FALLBACK]
-                    Gửi tới: {0}
-                    Tiêu đề: {1}
-                    Nội dung:
-                    {2}
-                    ======================================================
+                    \n[EMAIL NOT SENT] SMTP_USER/SMTP_PASSWORD chưa được cấu hình. Gửi tới: {0}
                     """, new Object[]{toEmail, subject, htmlContent});
-            return true;
+            return false;
         }
 
         try {

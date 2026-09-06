@@ -16,4 +16,6 @@ public interface IUserService {
     boolean resendRegistrationOtp(String email);
     boolean sendForgotPasswordOtp(String emailOrUsername);
     boolean resetPassword(String email, String otp, String newPassword);
+    String requestPasswordReset(String username);
+    boolean resetPassword(int userId, String otp, String newPassword);
 }

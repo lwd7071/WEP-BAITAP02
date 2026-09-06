@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import vn.iotstar.entity.Category;
+import vn.iotstar.entity.User;
 import vn.iotstar.entity.Video;
 
 import java.util.UUID;
@@ -27,7 +28,12 @@ class JpaSmokeTest {
             transaction = entityManager.getTransaction();
             transaction.begin();
 
+            String suffix = UUID.randomUUID().toString();
+            User owner = new User("smoke-" + suffix + "@example.com", "smoke-" + suffix,
+                    "Smoke owner", "1234", null, 3, null, null);
+            entityManager.persist(owner);
             Category category = new Category("Smoke " + UUID.randomUUID(), null, 1);
+            category.setOwner(owner);
             Video video = new Video();
             video.setVideoId("smoke-" + UUID.randomUUID());
             video.setTitle("JPA smoke test");
@@ -39,6 +45,7 @@ class JpaSmokeTest {
 
             Category loaded = entityManager.find(Category.class, category.getCategoryId());
             assertNotNull(loaded);
+            assertEquals(owner.getId(), loaded.getOwner().getId());
             assertEquals(1, loaded.getVideos().size());
             assertEquals(video.getVideoId(), loaded.getVideos().getFirst().getVideoId());
 

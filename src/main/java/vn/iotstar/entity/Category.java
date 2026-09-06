@@ -6,6 +6,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -16,8 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "categories")
-@NamedQuery(name = "Category.findAll", query = "SELECT c FROM Category c ORDER BY c.categoryId")
+@NamedQuery(name = "Category.findAllByOwner", query = "SELECT c FROM Category c WHERE c.owner.id = :ownerId ORDER BY c.categoryId")
+@Table(name = "categories", uniqueConstraints = @jakarta.persistence.UniqueConstraint(name = "uk_categories_owner_name", columnNames = {"user_id", "category_name"}))
 public class Category implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -35,6 +37,10 @@ public class Category implements Serializable {
 
     @Column(nullable = false)
     private int status;
+
+    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User owner;
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.PERSIST)
     private List<Video> videos = new ArrayList<>();
@@ -68,6 +74,8 @@ public class Category implements Serializable {
     public void setImages(String images) { this.images = images; }
     public int getStatus() { return status; }
     public void setStatus(int status) { this.status = status; }
+    public User getOwner() { return owner; }
+    public void setOwner(User owner) { this.owner = owner; }
     public List<Video> getVideos() { return videos; }
     public void setVideos(List<Video> videos) { this.videos = videos; }
 }

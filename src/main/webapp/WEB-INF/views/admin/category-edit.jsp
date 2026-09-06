@@ -6,10 +6,10 @@
 <head><title>Sửa danh mục | JPA Category</title></head>
 <body>
 <main class="page-shell narrow">
-    <a class="back-link" href="${pageContext.request.contextPath}/admin/categories">← Quay lại danh sách</a>
+    <a class="back-link" href="${pageContext.request.contextPath}/categories">← Quay lại danh mục của tôi</a>
     <div class="page-heading"><div><div class="eyebrow">CATEGORY · UPDATE</div><h1>Sửa danh mục</h1><p>Mã danh mục #${category.categoryId}</p></div></div>
     <c:if test="${not empty error}"><div class="alert error"><c:out value="${error}"/></div></c:if>
-    <form class="editor-card form-stack" method="post" enctype="multipart/form-data" action="${pageContext.request.contextPath}/admin/category/update">
+    <form class="editor-card form-stack" method="post" enctype="multipart/form-data" action="${pageContext.request.contextPath}/category/update">
         <input type="hidden" name="id" value="${category.categoryId}">
         <label>Tên danh mục <input name="categoryName" maxlength="255" required value="${fn:escapeXml(category.categoryName)}"></label>
         <c:if test="${not empty category.images}">

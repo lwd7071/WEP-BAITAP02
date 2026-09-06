@@ -8,9 +8,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
 import vn.iotstar.entity.Category;
+import vn.iotstar.entity.User;
 import vn.iotstar.service.ICategoryService;
 import vn.iotstar.service.impl.CategoryServiceImpl;
 import vn.iotstar.util.AppConstants;
+import vn.iotstar.util.AuthUtil;
 import vn.iotstar.util.UploadUtil;
 
 import java.io.IOException;
@@ -18,16 +20,24 @@ import java.util.List;
 
 @MultipartConfig(maxFileSize = AppConstants.MAX_IMAGE_SIZE, maxRequestSize = AppConstants.MAX_IMAGE_SIZE + 1024 * 1024)
 @WebServlet(urlPatterns = {
-        "/admin/categories",
-        "/admin/category/add",
-        "/admin/category/insert",
-        "/admin/category/edit",
-        "/admin/category/update",
-        "/admin/category/delete"
+        "/categories",
+        "/category/add",
+        "/category/insert",
+        "/category/edit",
+        "/category/update",
+        "/category/delete"
 })
 public class CategoryController extends HttpServlet {
     private static final int PAGE_SIZE = 6;
-    private final ICategoryService categoryService = new CategoryServiceImpl();
+    private final ICategoryService categoryService;
+
+    public CategoryController() {
+        this(new CategoryServiceImpl());
+    }
+
+    public CategoryController(ICategoryService categoryService) {
+        this.categoryService = categoryService;
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -35,15 +45,15 @@ public class CategoryController extends HttpServlet {
         String path = path(request);
         try {
             switch (path) {
-                case "/admin/categories" -> showList(request, response);
-                case "/admin/category/add" -> forward(request, response, "/WEB-INF/views/admin/category-add.jsp");
-                case "/admin/category/edit" -> showEdit(request, response);
-                case "/admin/category/delete" -> delete(request, response);
+                case "/categories" -> showList(request, response);
+                case "/category/add" -> forward(request, response, "/WEB-INF/views/admin/category-add.jsp");
+                case "/category/edit" -> showEdit(request, response);
+                case "/category/delete" -> delete(request, response);
                 default -> response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } catch (IllegalArgumentException | IllegalStateException exception) {
             flash(request, "error", exception.getMessage());
-            response.sendRedirect(request.getContextPath() + "/admin/categories");
+            response.sendRedirect(request.getContextPath() + "/categories");
         }
     }
 
@@ -51,9 +61,9 @@ public class CategoryController extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String path = path(request);
-        if ("/admin/category/insert".equals(path)) {
+        if ("/category/insert".equals(path)) {
             insert(request, response);
-        } else if ("/admin/category/update".equals(path)) {
+        } else if ("/category/update".equals(path)) {
             update(request, response);
         } else {
             response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
@@ -62,19 +72,20 @@ public class CategoryController extends HttpServlet {
 
     private void showList(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        int ownerId = requireCurrentUser(request).getId();
         String keyword = request.getParameter("q");
         int page = parseNonNegative(request.getParameter("page"), 0);
         List<Category> categories;
         int total;
         if (keyword != null && !keyword.isBlank()) {
-            categories = categoryService.searchByName(keyword);
+            categories = categoryService.searchByName(keyword, ownerId);
             total = categories.size();
             int from = Math.min(page * PAGE_SIZE, total);
             int to = Math.min(from + PAGE_SIZE, total);
             categories = categories.subList(from, to);
         } else {
-            total = categoryService.count();
-            categories = categoryService.findAll(page, PAGE_SIZE);
+            total = categoryService.count(ownerId);
+            categories = categoryService.findAll(ownerId, page, PAGE_SIZE);
         }
         request.setAttribute("categories", categories);
         request.setAttribute("keyword", keyword == null ? "" : keyword.trim());
@@ -86,9 +97,9 @@ public class CategoryController extends HttpServlet {
 
     private void showEdit(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        Category category = categoryService.findById(parseId(request));
+        Category category = categoryService.findById(parseId(request), requireCurrentUser(request).getId());
         if (category == null) {
-            throw new IllegalArgumentException("Không tìm thấy danh mục");
+            throw new IllegalArgumentException("Không tìm thấy danh mục hoặc bạn không có quyền sửa");
         }
         request.setAttribute("category", category);
         forward(request, response, "/WEB-INF/views/admin/category-edit.jsp");
@@ -98,15 +109,16 @@ public class CategoryController extends HttpServlet {
             throws ServletException, IOException {
         String uploaded = null;
         try {
+            int ownerId = requireCurrentUser(request).getId();
             uploaded = UploadUtil.saveImage(request.getPart("imageFile"));
             String image = chooseImage(uploaded, request.getParameter("images"), null);
             Category category = new Category(
                     required(request.getParameter("categoryName"), "Tên danh mục không được để trống"),
                     image,
                     parseStatus(request.getParameter("status")));
-            categoryService.insert(category);
-            flash(request, "success", "Đã thêm danh mục thành công");
-            response.sendRedirect(request.getContextPath() + "/admin/categories");
+            categoryService.insert(category, ownerId);
+            flash(request, "success", "Đã thêm danh mục vào tài khoản của bạn");
+            response.sendRedirect(request.getContextPath() + "/categories");
         } catch (IllegalArgumentException | IllegalStateException | ServletException exception) {
             UploadUtil.deleteLocal(uploaded);
             request.setAttribute("error", exception.getMessage());
@@ -119,9 +131,10 @@ public class CategoryController extends HttpServlet {
 
     private void update(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        Category category = categoryService.findById(parseId(request));
+        int ownerId = requireCurrentUser(request).getId();
+        Category category = categoryService.findById(parseId(request), ownerId);
         if (category == null) {
-            throw new IllegalArgumentException("Không tìm thấy danh mục");
+            throw new IllegalArgumentException("Không tìm thấy danh mục hoặc bạn không có quyền sửa");
         }
         String oldImage = category.getImages();
         String uploaded = null;
@@ -133,12 +146,12 @@ public class CategoryController extends HttpServlet {
                     "Tên danh mục không được để trống"));
             category.setStatus(parseStatus(request.getParameter("status")));
             category.setImages(newImage);
-            categoryService.update(category);
+            categoryService.update(category, ownerId);
             if (newImage != null && !newImage.equals(oldImage)) {
                 UploadUtil.deleteLocal(oldImage);
             }
-            flash(request, "success", "Đã cập nhật danh mục");
-            response.sendRedirect(request.getContextPath() + "/admin/categories");
+            flash(request, "success", "Đã cập nhật danh mục của bạn");
+            response.sendRedirect(request.getContextPath() + "/categories");
         } catch (IllegalArgumentException | IllegalStateException | ServletException exception) {
             UploadUtil.deleteLocal(uploaded);
             category.setImages(oldImage);
@@ -149,20 +162,27 @@ public class CategoryController extends HttpServlet {
     }
 
     private void delete(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        Category category = categoryService.findById(parseId(request));
+        int ownerId = requireCurrentUser(request).getId();
+        Category category = categoryService.findById(parseId(request), ownerId);
         if (category == null) {
-            throw new IllegalArgumentException("Không tìm thấy danh mục");
+            throw new IllegalArgumentException("Không tìm thấy danh mục hoặc bạn không có quyền xóa");
         }
-        categoryService.delete(category.getCategoryId());
+        categoryService.delete(category.getCategoryId(), ownerId);
         UploadUtil.deleteLocal(category.getImages());
-        flash(request, "success", "Đã xóa danh mục");
-        response.sendRedirect(request.getContextPath() + "/admin/categories");
+        flash(request, "success", "Đã xóa danh mục của bạn");
+        response.sendRedirect(request.getContextPath() + "/categories");
+    }
+
+    private User requireCurrentUser(HttpServletRequest request) {
+        User user = AuthUtil.currentUser(request);
+        if (user == null || user.getStatus() != 1 || user.getId() <= 0) {
+            throw new IllegalStateException("Vui lòng đăng nhập bằng tài khoản đã kích hoạt");
+        }
+        return user;
     }
 
     private String chooseImage(String uploaded, String imageUrl, String fallback) {
-        if (uploaded != null) {
-            return uploaded;
-        }
+        if (uploaded != null) return uploaded;
         if (imageUrl != null && !imageUrl.isBlank()) {
             String value = imageUrl.trim();
             if (!UploadUtil.isRemoteUrl(value)) {
@@ -179,9 +199,7 @@ public class CategoryController extends HttpServlet {
 
     private int parseStatus(String value) {
         int status = parseNonNegative(value, -1);
-        if (status != 0 && status != 1) {
-            throw new IllegalArgumentException("Vui lòng chọn trạng thái danh mục");
-        }
+        if (status != 0 && status != 1) throw new IllegalArgumentException("Vui lòng chọn trạng thái danh mục");
         return status;
     }
 

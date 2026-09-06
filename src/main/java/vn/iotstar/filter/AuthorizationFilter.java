@@ -16,7 +16,7 @@ import vn.iotstar.util.AuthUtil;
 
 import java.io.IOException;
 
-@WebFilter(urlPatterns = {"/home", "/manager/*", "/admin/*", "/profile"})
+@WebFilter(urlPatterns = {"/home", "/manager/*", "/admin/*", "/profile", "/categories", "/category/*"})
 public class AuthorizationFilter implements Filter {
     private final IUserService userService;
 
@@ -35,11 +35,13 @@ public class AuthorizationFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) servletResponse;
         User user = AuthUtil.currentUser(request);
 
-        if (user == null) {
+        if (user == null || user.getStatus() != 1) {
             String remembered = AuthUtil.cookieValue(request, AppConstants.COOKIE_REMEMBER);
             user = userService.findByUsername(remembered);
-            if (user != null) {
+            if (user != null && user.getStatus() == 1) {
                 request.getSession(true).setAttribute(AppConstants.SESSION_ACCOUNT, user);
+            } else {
+                user = null;
             }
         }
 
@@ -50,8 +52,8 @@ public class AuthorizationFilter implements Filter {
         }
 
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        if (path.startsWith("/admin/") && user.getRoleId() != 1
-                || path.startsWith("/manager/") && user.getRoleId() != 2) {
+        if ((path.startsWith("/admin/") && user.getRoleId() != 1)
+                || (path.startsWith("/manager/") && user.getRoleId() != 2)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập trang này");
             return;
         }
