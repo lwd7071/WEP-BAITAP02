@@ -45,6 +45,9 @@ public class Category implements Serializable {
     @OneToMany(mappedBy = "category", cascade = CascadeType.PERSIST)
     private List<Video> videos = new ArrayList<>();
 
+    @OneToMany(mappedBy = "category", cascade = CascadeType.PERSIST)
+    private List<Product> products = new ArrayList<>();
+
     public Category() {
     }
 
@@ -78,4 +81,6 @@ public class Category implements Serializable {
     public void setOwner(User owner) { this.owner = owner; }
     public List<Video> getVideos() { return videos; }
     public void setVideos(List<Video> videos) { this.videos = videos; }
+    public List<Product> getProducts() { return products; }
+    public void setProducts(List<Product> products) { this.products = products; }
 }

@@ -46,6 +46,9 @@ public class CategoryDao implements ICategoryDao {
             if (!category.getVideos().isEmpty()) {
                 throw new IllegalStateException("Không thể xóa danh mục đang có video liên kết");
             }
+            if (!category.getProducts().isEmpty()) {
+                throw new IllegalStateException("Không thể xóa danh mục đang có sản phẩm liên kết");
+            }
             entityManager.remove(category);
         });
     }
