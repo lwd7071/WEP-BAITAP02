@@ -6,6 +6,7 @@
 
 - Quản lý tài khoản: đăng ký, kích hoạt bằng OTP gửi qua email, đăng nhập, ghi nhớ đăng nhập và đặt lại mật khẩu.
 - Quản lý Category theo từng tài khoản: CRUD, tìm kiếm, phân trang và upload ảnh riêng cho owner.
+- Quản lý Product theo Category: CRUD, ảnh, phân trang 6 sản phẩm/trang, trang chi tiết và 10 sản phẩm mới nhất.
 
 Luồng xử lý được tổ chức theo mô hình:
 
@@ -145,12 +146,13 @@ Với database cũ, chạy migration trước khi deploy phiên bản mới:
 sqlcmd -S ".\SQLEXPRESS" -U sa -P "YOUR_PASSWORD" -i sql\03-add-category-owner.sql
 ```
 
-Migration thêm `categories.user_id`, gán Category cũ cho `admin`, tạo foreign key và unique index theo `(user_id, category_name)`. Migration không xóa Category hoặc Video.
+Migration `03` thêm owner cho Category. Migration `04` tạo bảng Product, khóa ngoại tới Category, index phân trang và dữ liệu sản phẩm mẫu. Các script đều có thể chạy lại an toàn.
 
 Sau khi database mới hoặc migration đã hoàn tất, nạp dữ liệu mẫu:
 
 ```powershell
 sqlcmd -S ".\SQLEXPRESS" -U sa -P "YOUR_PASSWORD" -i sql\02-seed-data.sql
+sqlcmd -S ".\SQLEXPRESS" -U sa -P "YOUR_PASSWORD" -i sql\04-add-products.sql
 ```
 
 Truy cập: `http://localhost:8080/WEP-BAITAP02/`
