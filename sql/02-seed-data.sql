@@ -14,35 +14,32 @@ IF OBJECT_ID(N'dbo.users', N'U') IS NULL OR OBJECT_ID(N'dbo.categories', N'U') I
     THROW 50001, N'Hãy chạy ứng dụng một lần để Hibernate tạo bảng trước khi seed.', 1;
 GO
 
-IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE username = N'admin')
+IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE username = N'user1')
     INSERT INTO dbo.users (email, username, full_name, password, avatar, role_id, phone, created_date)
-    VALUES (N'admin@iotstar.vn', N'admin', N'Quản trị viên', N'123456', NULL, 1, N'0900000001', SYSDATETIME());
+    VALUES (N'user1@iotstar.vn', N'user1', N'Người dùng 1', N'123456', NULL, 3, N'0900000011', SYSDATETIME());
 
-IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE username = N'manager')
+IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE username = N'user2')
     INSERT INTO dbo.users (email, username, full_name, password, avatar, role_id, phone, created_date)
-    VALUES (N'manager@iotstar.vn', N'manager', N'Quản lý', N'123456', NULL, 2, N'0900000002', SYSDATETIME());
-
-IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE username = N'member')
-    INSERT INTO dbo.users (email, username, full_name, password, avatar, role_id, phone, created_date)
-    VALUES (N'member@iotstar.vn', N'member', N'Người dùng', N'123456', NULL, 3, N'0900000003', SYSDATETIME());
+    VALUES (N'user2@iotstar.vn', N'user2', N'Người dùng 2', N'123456', NULL, 3, N'0900000012', SYSDATETIME());
 GO
 
-DECLARE @adminId INT = (SELECT TOP 1 id FROM dbo.users WHERE username = N'admin');
-IF @adminId IS NULL
-    THROW 50004, N'Không tìm thấy tài khoản admin để seed Category.', 1;
+DECLARE @user1Id INT = (SELECT TOP 1 id FROM dbo.users WHERE username = N'user1');
+DECLARE @user2Id INT = (SELECT TOP 1 id FROM dbo.users WHERE username = N'user2');
 
-IF NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Điện thoại' AND user_id = @adminId)
+-- Danh mục riêng của user1
+IF @user1Id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Điện thoại' AND user_id = @user1Id)
     INSERT INTO dbo.categories (category_name, images, status, user_id)
-    VALUES (N'Điện thoại', N'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800', 1, @adminId);
+    VALUES (N'Điện thoại', N'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800', 1, @user1Id);
 
-IF NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Máy tính' AND user_id = @adminId)
+IF @user1Id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Máy tính' AND user_id = @user1Id)
     INSERT INTO dbo.categories (category_name, images, status, user_id)
-    VALUES (N'Máy tính', N'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800', 1, @adminId);
+    VALUES (N'Máy tính', N'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800', 1, @user1Id);
 
-IF NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Phụ kiện' AND user_id = @adminId)
+-- Danh mục riêng của user2
+IF @user2Id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.categories WHERE category_name = N'Thời trang & Phụ kiện' AND user_id = @user2Id)
     INSERT INTO dbo.categories (category_name, images, status, user_id)
-    VALUES (N'Phụ kiện', NULL, 0, @adminId);
+    VALUES (N'Thời trang & Phụ kiện', N'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800', 1, @user2Id);
 GO
 
-PRINT N'Đã seed tài khoản và danh mục mẫu.';
+PRINT N'Đã seed tài khoản user1, user2 và danh mục mẫu riêng cho từng người dùng.';
 GO

@@ -20,12 +20,12 @@ BEGIN
 END;
 GO
 
-DECLARE @adminId INT = (SELECT TOP 1 id FROM dbo.users WHERE username = N'admin');
-IF @adminId IS NULL
-    THROW 50003, N'Không tìm thấy tài khoản admin để gán Category cũ.', 1;
+DECLARE @defaultUserId INT = (SELECT TOP 1 id FROM dbo.users WHERE username IN (N'user1', N'admin') ORDER BY id);
+IF @defaultUserId IS NULL
+    THROW 50003, N'Không tìm thấy tài khoản (user1/admin) để gán Category cũ.', 1;
 
 UPDATE dbo.categories
-SET user_id = @adminId
+SET user_id = @defaultUserId
 WHERE user_id IS NULL;
 GO
 

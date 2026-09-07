@@ -22,7 +22,7 @@ Khi người dùng đăng ký, hệ thống thực hiện các bước sau:
 
 1. Kiểm tra dữ liệu bắt buộc và định dạng email, số điện thoại, mật khẩu.
 2. Kiểm tra email, username và số điện thoại đã tồn tại hay chưa.
-3. Tạo tài khoản người dùng với vai trò User và trạng thái **chưa kích hoạt**.
+3. Tạo tài khoản người dùng với trạng thái **chưa kích hoạt**.
 4. Sinh mã OTP 6 chữ số, lưu thời hạn 5 phút và gửi mã đến email đăng ký.
 5. Chuyển người dùng đến màn hình xác thực OTP.
 6. Nếu OTP đúng và còn hạn, tài khoản chuyển sang trạng thái hoạt động; OTP và thời hạn được xóa.
@@ -36,7 +36,7 @@ Người dùng có thể yêu cầu gửi lại OTP. Mã mới sẽ thay thế m
 - Sau khi đăng nhập thành công, tài khoản được lưu trong Session.
 - Tùy chọn “Ghi nhớ 30 phút” lưu username bằng HttpOnly Cookie.
 - Khi khôi phục đăng nhập từ Cookie, hệ thống vẫn kiểm tra trạng thái tài khoản trước khi tạo Session.
-- Sau đăng nhập, người dùng được chuyển đến trang phù hợp với role: Admin, Manager hoặc User.
+- Sau khi đăng nhập thành công, người dùng được chuyển đến trang chủ `/home` để quản lý Category và Product của riêng mình.
 
 ### 2.3. Quên mật khẩu bằng OTP gửi đến email đã đăng ký
 
@@ -53,21 +53,53 @@ Luồng quên mật khẩu đã được điều chỉnh theo username, không y
 
 Nếu username trống, không tồn tại hoặc tài khoản chưa kích hoạt, hệ thống hiển thị hướng dẫn tương ứng ngay trên trang đăng nhập.
 
-### 2.4. Quản lý Category và phân quyền
+### 2.4. Quản lý Category & Product theo từng người dùng (Data Isolation)
 
-- Mỗi Category thuộc đúng một tài khoản thông qua khóa ngoại `categories.user_id`.
-- Mọi tài khoản đã kích hoạt đều có thể mở trang Category và chỉ thấy dữ liệu do mình tạo.
-- Admin, Manager và User vẫn được giữ trong `role_id` để tương thích dữ liệu, nhưng role không giới hạn CRUD Category cá nhân.
-- Category cũ được migration gán cho tài khoản `admin`.
-- Một tài khoản không được sửa hoặc xóa Category thuộc tài khoản khác, kể cả khi thay đổi ID trong URL.
-- Hỗ trợ thêm, sửa, xóa, tìm kiếm và phân trang Category.
-- Ảnh Category có thể lấy từ URL hoặc upload, giới hạn 5 MB và kiểm tra định dạng.
-- Filter xử lý UTF-8, xác thực Session và phân quyền URL.
+Hệ thống triển khai theo mô hình **mỗi người dùng đều là người quản trị (admin) toàn quyền đối với dữ liệu của chính mình**:
 
-## 3. Cấu trúc mã nguồn liên quan đến tài khoản
+- Mỗi Category và Product đều gắn liền với người tạo qua khóa ngoại `user_id`.
+- Mọi tài khoản sau khi đăng nhập đều có toàn quyền CRUD (thêm, sửa, xóa, tìm kiếm, phân trang) trên danh mục và sản phẩm của riêng mình.
+- Dữ liệu được cô lập tuyệt đối: Người dùng chỉ thấy và chỉ thao tác được trên dữ liệu do mình tạo ra; không thể can thiệp dữ liệu của người khác kể cả khi thay đổi ID trên URL hay gọi API.
+- Hỗ trợ upload ảnh riêng cho từng Category và Product (giới hạn 5 MB, kiểm tra định dạng an toàn).
+- Bộ lọc Filter tự động kiểm tra phiên đăng nhập và quyền sở hữu tài nguyên ở mọi tác vụ.
 
+### 2.5. Hệ thống RESTful API chuẩn hóa (Format ApiResponse)
+
+Tất cả các endpoint API trả về JSON đều tuân thủ duy nhất 1 format chuẩn:
+
+```json
+{
+  "success": true,           // true/false: trạng thái thành công
+  "code": 200,              // Mã HTTP status code (200, 201, 400, 401, 403, 404, 500)
+  "message": "Thông báo",    // Thông điệp kết quả hoặc nguyên nhân lỗi
+  "data": { ... },          // Dữ liệu đối tượng, danh sách, hoặc null
+  "timestamp": 1725700000000 // Epoch time (ms)
+}
+```
+
+Danh sách API:
+- `GET /api/categories`: Lấy danh sách danh mục của tài khoản (hỗ trợ `?q=...`, `?page=...&size=...`).
+- `GET /api/categories/{id}`: Xem chi tiết danh mục thuộc sở hữu.
+- `POST /api/categories`: Tạo mới danh mục (JSON body).
+- `PUT /api/categories/{id}`: Cập nhật danh mục thuộc sở hữu (JSON body).
+- `DELETE /api/categories/{id}`: Xóa danh mục thuộc sở hữu.
+- `GET /api/products`: Lấy danh sách sản phẩm của tài khoản (hỗ trợ `?latest=true`, `?page=...&size=...`).
+- `GET /api/products/{id}`: Xem chi tiết sản phẩm thuộc sở hữu.
+- `POST /api/products`: Tạo mới sản phẩm (JSON body).
+- `PUT /api/products/{id}`: Cập nhật sản phẩm thuộc sở hữu (JSON body).
+- `DELETE /api/products/{id}`: Xóa sản phẩm thuộc sở hữu.
+- Bảo mật API: Tích hợp trong `AuthorizationFilter`, tự động kiểm tra đăng nhập và trả về JSON lỗi 401 Unauthorized nếu chưa đăng nhập.
+
+## 3. Cấu trúc mã nguồn liên quan
+
+- `dto/ApiResponse.java`: format chuẩn phản hồi REST API.
+- `dto/CategoryDto.java` & `dto/ProductDto.java`: DTO trung gian an toàn cho API.
+- `controller/api/ApiCategoryController.java`: REST API quản lý danh mục.
+- `controller/api/ApiProductController.java`: REST API quản lý sản phẩm.
+- `util/JsonUtil.java`: tiện ích cấu hình Jackson, đọc ghi JSON.
 - `entity/User.java`: thông tin tài khoản, trạng thái, OTP và thời hạn OTP.
 - `entity/Category.java`: Category và owner là User sở hữu Category.
+- `entity/Product.java`: Product thuộc Category.
 - `controller/RegisterController.java`: tiếp nhận đăng ký.
 - `controller/LoginController.java`: đăng nhập và ghi nhớ tài khoản.
 - `controller/VerifyOtpController.java`: xác thực và gửi lại OTP kích hoạt.
@@ -85,6 +117,7 @@ Nếu username trống, không tồn tại hoặc tài khoản chưa kích hoạ
 - Java 21, Maven 3.9+
 - Apache Tomcat 11, Jakarta Servlet 6.1, JSP 4.0
 - Hibernate ORM 7.4.6, Jakarta Persistence 3.2
+- Jackson Databind 2.18+ (Xử lý JSON cho REST API)
 - SQL Server 2022 Express
 - Jakarta Tags/JSTL 3.0
 - Jakarta Mail API và Eclipse Angus Mail
@@ -157,41 +190,35 @@ sqlcmd -S ".\SQLEXPRESS" -U sa -P "YOUR_PASSWORD" -i sql\04-add-products.sql
 
 Truy cập: `http://localhost:8080/WEP-BAITAP02/`
 
-| Role | Username | Password | Trang đích | Quyền Category |
-|---|---|---|---|---|
-| Admin | `admin` | `123456` | `/home` | CRUD Category của admin |
-| Manager | `manager` | `123456` | `/home` | CRUD Category của manager |
-| User | `member` | `123456` | `/home` | CRUD Category của member |
+| Tài khoản mẫu | Mật khẩu | Phạm vi dữ liệu quản lý (Data Isolation) |
+|---|---|---|
+| `user1` | `123456` | Toàn quyền quản trị danh mục & sản phẩm của riêng `user1` |
+| `user2` | `123456` | Toàn quyền quản trị danh mục & sản phẩm của riêng `user2` |
 
-## 6. Kiểm thử
+*(Hai tài khoản trên dùng để đối chiếu tính năng: mỗi người dùng chỉ thấy và quản trị dữ liệu do chính mình tạo ra, hoàn toàn độc lập và không thể can thiệp dữ liệu của người khác).*
 
-Unit test không yêu cầu SQL Server. Lệnh kiểm thử hiện tại:
+## 6. Kiểm thử tự động (Automated Testing)
+
+Dự án được xây dựng kèm bộ kiểm thử tự động bằng JUnit 5 và Mockito, bao phủ các tầng Service, Controller và Filter.
+
+Lệnh thực hiện kiểm thử:
 
 ```powershell
 mvn test
 ```
 
-Kết quả kiểm tra gần nhất: **40 test đạt, 0 test lỗi, 1 smoke test SQL Server được bỏ qua** vì smoke test chỉ chạy khi bật biến môi trường:
+Ngoài ra, dự án hỗ trợ smoke test kiểm tra quan hệ JPA với cơ sở dữ liệu thật (tự động rollback transaction sau khi kiểm tra):
 
 ```powershell
 $env:RUN_JPA_SMOKE = "true"
 mvn test
 ```
 
-Smoke test tạo Category và Video, kiểm tra quan hệ JPA rồi rollback transaction để không để lại dữ liệu thử nghiệm.
+Các phạm vi chức năng được kiểm thử tự động:
 
-Các nhóm kiểm thử tài khoản bao gồm:
-
-- Đăng nhập đúng/sai và chặn tài khoản chưa kích hoạt.
-- Tạo tài khoản với role User và kiểm tra dữ liệu trùng.
-- Xác thực OTP đúng, sai và hết hạn.
-- Gửi lại OTP kích hoạt.
-- Gửi OTP quên mật khẩu và cập nhật mật khẩu.
-- Không cho phép reset password bằng email/định danh thay đổi từ request.
-- Xóa OTP sau khi đổi mật khẩu thành công.
-- Hai tài khoản được dùng cùng tên Category nhưng không nhìn thấy dữ liệu của nhau.
-- Tài khoản không được sửa/xóa Category thuộc owner khác.
-- Cookie của tài khoản chưa kích hoạt không được khôi phục Session.
+- **Tài khoản & Xác thực:** Đăng nhập đúng/sai, chặn tài khoản chưa kích hoạt, luồng OTP đăng ký/quên mật khẩu và cơ chế khôi phục qua Cookie.
+- **Phân quyền & Dữ liệu cá nhân:** Đảm bảo mỗi owner chỉ thao tác trên Category và Product của mình, ngăn chặn can thiệp trái phép qua ID.
+- **REST API & Chuẩn Response:** Kiểm thử định dạng cấu trúc `ApiResponse<T>`, mã HTTP status code và tính hợp lệ của dữ liệu JSON trả về.
 
 ## 7. Lưu ý phạm vi bài tập
 

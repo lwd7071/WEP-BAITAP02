@@ -17,7 +17,7 @@ import vn.iotstar.util.AuthUtil;
 import java.io.IOException;
 
 @WebFilter(urlPatterns = {"/home", "/manager/*", "/admin/*", "/profile", "/categories", "/category/*",
-        "/products", "/product", "/product/*"})
+        "/products", "/product", "/product/*", "/api/*"})
 public class AuthorizationFilter implements Filter {
     private final IUserService userService;
 
@@ -46,15 +46,27 @@ public class AuthorizationFilter implements Filter {
             }
         }
 
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+
         if (user == null) {
+            // Nếu là request API thì trả về JSON lỗi 401 chuẩn thay vì redirect HTML
+            if (path.startsWith("/api/")) {
+                vn.iotstar.util.JsonUtil.writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
+                        vn.iotstar.dto.ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập để thực hiện thao tác này"));
+                return;
+            }
             request.getSession(true).setAttribute("redirectAfterLogin", request.getRequestURI());
             response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
 
-        String path = request.getRequestURI().substring(request.getContextPath().length());
         if ((path.startsWith("/admin/") && user.getRoleId() != 1)
                 || (path.startsWith("/manager/") && user.getRoleId() != 2)) {
+            if (path.startsWith("/api/")) {
+                vn.iotstar.util.JsonUtil.writeJson(response, HttpServletResponse.SC_FORBIDDEN,
+                        vn.iotstar.dto.ApiResponse.error(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thao tác này"));
+                return;
+            }
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập trang này");
             return;
         }

@@ -34,11 +34,9 @@ public final class JpaConfig {
     static Map<String, Object> properties() {
         Map<String, Object> values = new HashMap<>();
         values.put("jakarta.persistence.jdbc.user", env("DB_USER", "sa"));
-        values.put("jakarta.persistence.jdbc.password", env("DB_PASSWORD", ""));
-        String customUrl = System.getenv("DB_URL");
-        if (customUrl != null && !customUrl.isBlank()) {
-            values.put("jakarta.persistence.jdbc.url", customUrl.trim());
-        }
+        values.put("jakarta.persistence.jdbc.password", env("DB_PASSWORD", "lvvd7071"));
+        String defaultUrl = "jdbc:sqlserver://localhost:61250;databaseName=jakartaJPA;encrypt=true;trustServerCertificate=true";
+        values.put("jakarta.persistence.jdbc.url", env("DB_URL", defaultUrl));
         return values;
     }
 

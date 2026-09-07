@@ -36,6 +36,9 @@ class SiteMeshFilterTest {
         method.setAccessible(true);
         method.invoke(filter, builder);
 
+        // Verify dispatch mode
+        verify(builder).setDispatchMode(org.sitemesh.webapp.DispatchMode.INCLUDE);
+
         // Verify decorator paths
         verify(builder).addDecoratorPath("/admin/*", "/WEB-INF/decorators/admin.jsp");
         verify(builder).addDecoratorPath("/*", "/WEB-INF/decorators/web.jsp");

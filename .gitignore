@@ -8,3 +8,5 @@ target/
 uploads/
 .env
 *.log
+*_cookie*.txt
+admin_cookie*.txt
