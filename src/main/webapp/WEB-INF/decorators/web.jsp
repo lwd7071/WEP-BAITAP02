@@ -16,7 +16,13 @@
     <sitemesh:write property="head"/>
 </head>
 <body>
-    <%@ include file="../views/partials/topbar.jspf" %>
+    <%@ include file="/WEB-INF/views/partials/topbar.jspf" %>
+    
     <sitemesh:write property="body"/>
+
+    <%@ include file="/WEB-INF/views/partials/cart-drawer.jspf" %>
+    <%@ include file="/WEB-INF/views/partials/footer.jspf" %>
+    
+    <script src="${pageContext.request.contextPath}/assets/app.js" defer></script>
 </body>
 </html>

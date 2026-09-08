@@ -27,6 +27,9 @@ public class SiteMeshFilter extends ConfigurableSiteMeshFilter {
         // Dùng DispatchMode.INCLUDE để tránh Tomcat 11 commit response sớm gây trắng trang
         builder.setDispatchMode(DispatchMode.INCLUDE);
 
+        // Xóa prefix mặc định "/WEB-INF/decorators/" để không bị nhân đôi đường dẫn
+        builder.setDecoratorPrefix("");
+
         // Decorator riêng cho trang quản trị Admin
         builder.addDecoratorPath("/admin/*", "/WEB-INF/decorators/admin.jsp");
 
