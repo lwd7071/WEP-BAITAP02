@@ -49,8 +49,11 @@ public final class EmailUtil {
     public static boolean sendEmail(String toEmail, String subject, String htmlContent) {
         String host = getEnv("SMTP_HOST", "smtp.gmail.com");
         String port = getEnv("SMTP_PORT", "587");
-        String user = getEnv("SMTP_USER", getEnv("EMAIL_USER", null));
-        String pass = getEnv("SMTP_PASSWORD", getEnv("EMAIL_PASSWORD", null));
+        String rawUser = getEnv("SMTP_USER", getEnv("EMAIL_USER", null));
+        String rawPass = getEnv("SMTP_PASSWORD", getEnv("EMAIL_PASSWORD", null));
+
+        final String user = (rawUser != null) ? rawUser.trim() : null;
+        final String pass = (rawPass != null) ? rawPass.trim().replace(" ", "") : null;
 
         // Không giả lập gửi mail trong môi trường chạy thật: nếu thiếu cấu hình,
         // service phải biết để báo lỗi và cho người dùng gửi lại OTP sau.
