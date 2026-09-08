@@ -1,0 +1,67 @@
+<footer class="site-footer">
+    <div class="footer-inner">
+        <div class="footer-col brand-col">
+            <a class="brand" href="${pageContext.request.contextPath}/waiting">
+                <span class="brand-mark">J</span>
+                <span class="brand-name">JPA Store</span>
+            </a>
+            <p class="brand-desc">
+                Nền tảng mua sắm hiện đại và tiện lợi. Mang lại trải nghiệm sản phẩm cao cấp, uy tín hàng đầu với chính sách bảo hành chính hãng.
+            </p>
+            <div class="footer-socials">
+                <a href="#facebook" class="social-link" title="Facebook"><span>FB</span></a>
+                <a href="#instagram" class="social-link" title="Instagram"><span>IG</span></a>
+                <a href="#tiktok" class="social-link" title="TikTok"><span>TK</span></a>
+                <a href="#youtube" class="social-link" title="YouTube"><span>YT</span></a>
+            </div>
+        </div>
+
+        <div class="footer-col">
+            <h4>Hỗ Trợ Khách Hàng</h4>
+            <ul class="footer-links">
+                <li><a href="#hotline">Hotline: 1900 6868 (8:00 - 21:00)</a></li>
+                <li><a href="#guide">Hướng dẫn đặt mua online</a></li>
+                <li><a href="#shipping">Tra cứu vận chuyển đơn hàng</a></li>
+                <li><a href="#faq">Câu hỏi thường gặp (FAQ)</a></li>
+                <li><a href="#stores">Hệ thống showroom toàn quốc</a></li>
+            </ul>
+        </div>
+
+        <div class="footer-col">
+            <h4>Chính Sách & Dịch Vụ</h4>
+            <ul class="footer-links">
+                <li><a href="#guarantee">Chính sách bảo hành 12 tháng</a></li>
+                <li><a href="#returns">Đổi trả 1-1 trong 7 ngày</a></li>
+                <li><a href="#privacy">Bảo mật thông tin khách hàng</a></li>
+                <li><a href="#terms">Điều khoản & Quy định sử dụng</a></li>
+                <li><a href="#inspection">Chính sách đồng kiểm khi nhận</a></li>
+            </ul>
+        </div>
+
+        <div class="footer-col">
+            <h4>Phương Thức Thanh Toán</h4>
+            <div class="payment-badges">
+                <span class="pay-tag">💵 Tiền mặt (COD)</span>
+                <span class="pay-tag">💳 Thẻ ATM / Visa</span>
+                <span class="pay-tag">⚡ Chuyển khoản QR</span>
+                <span class="pay-tag">📱 Ví điện tử</span>
+            </div>
+            <div class="newsletter-block">
+                <h4>Đăng Ký Nhận Ưu Đãi</h4>
+                <p>Nhận ngay voucher giảm giá 10% cho đơn hàng đầu tiên.</p>
+                <form class="newsletter-form" onsubmit="event.preventDefault(); window.showToast && window.showToast('Cảm ơn bạn đã đăng ký nhận ưu đãi!', 'success');">
+                    <input type="email" placeholder="Nhập email của bạn..." required>
+                    <button class="button primary" type="submit">Gửi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>© 2026 JPA Store. Đã đăng ký bản quyền. Hệ thống xây dựng trên nền tảng Servlet & JPA.</p>
+        <div class="footer-bottom-links">
+            <a href="#privacy">Bảo mật</a>
+            <a href="#terms">Điều khoản</a>
+            <a href="#sitemap">Sơ đồ web</a>
+        </div>
+    </div>
+</footer>

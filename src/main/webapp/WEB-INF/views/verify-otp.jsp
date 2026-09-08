@@ -4,18 +4,19 @@
 <!doctype html>
 <html lang="vi" class="notranslate">
 <head>
-    <title>Xác thực OTP | JPA Category</title>
+    <title>Xác thực OTP | JPA Store</title>
     <%@ include file="partials/head.jspf" %>
 </head>
 <body class="auth-page">
 <main class="auth-shell centered">
     <section class="auth-card">
-        <div class="card-heading">
-            <span class="brand-mark">J</span>
-            <div>
-                <h2>Xác thực tài khoản</h2>
-                <p>Nhập mã OTP 6 chữ số được gửi tới email</p>
-            </div>
+        <div class="otp-icon-bubble">
+            ✉
+        </div>
+
+        <div class="card-heading" style="justify-content: center; text-align: center; flex-direction: column; gap: 0.4rem; margin-bottom: 1.4rem;">
+            <h2>Xác thực tài khoản</h2>
+            <p>Nhập mã OTP 6 chữ số được gửi tới email của bạn</p>
         </div>
 
         <c:if test="${not empty sessionScope.success}">
@@ -37,8 +38,8 @@
             </label>
             <label>Mã OTP (6 chữ số)
                 <input type="text" name="otp" required maxlength="6" pattern="[0-9]{6}"
-                       placeholder="Ví dụ: 123456" autocomplete="one-time-code" autofocus
-                       value="${fn:escapeXml(otp)}" style="font-size: 20px; letter-spacing: 6px; text-align: center;">
+                       placeholder="· · · · · ·" autocomplete="one-time-code" autofocus
+                       value="${fn:escapeXml(otp)}" style="font-size: 22px; letter-spacing: 8px; text-align: center; font-weight: 800;">
             </label>
             <button class="button primary full" type="submit">Xác nhận kích hoạt</button>
         </form>
@@ -49,8 +50,9 @@
             <button class="button secondary full" type="submit">Gửi lại mã OTP mới</button>
         </form>
 
-        <p class="form-foot">Đã xác thực xong? <a href="${pageContext.request.contextPath}/login">Quay lại đăng nhập</a></p>
+        <p class="form-foot">Đã kích hoạt tài khoản? <a href="${pageContext.request.contextPath}/login">Quay lại đăng nhập</a></p>
     </section>
 </main>
+<script src="${pageContext.request.contextPath}/assets/app.js" defer></script>
 </body>
 </html>

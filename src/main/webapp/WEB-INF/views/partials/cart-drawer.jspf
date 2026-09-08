@@ -1,0 +1,22 @@
+<!-- Drawer giỏ hàng trượt từ phải sang (Slide-in Drawer) -->
+<div id="drawer-overlay" class="drawer-overlay"></div>
+<aside id="cart-drawer" class="cart-drawer">
+    <div class="drawer-header">
+        <h3>Giỏ hàng của bạn</h3>
+        <button id="drawer-close" class="btn-close-drawer" aria-label="Đóng giỏ hàng">✕</button>
+    </div>
+    <div class="drawer-body">
+        <div class="drawer-empty">
+            <span class="empty-icon">🛍️</span>
+            <p>Giỏ hàng đang sẵn sàng đón nhận các sản phẩm tuyệt vời của bạn!</p>
+            <a class="button primary" href="${pageContext.request.contextPath}/product">Khám phá ngay</a>
+        </div>
+    </div>
+    <div class="drawer-footer">
+        <div class="drawer-total">
+            <span>Tạm tính:</span>
+            <strong>0 ₫</strong>
+        </div>
+        <button class="button primary full" onclick="window.showToast && window.showToast('Chuyển hướng đến trang thanh toán an toàn...', 'info');">Tiến hành thanh toán</button>
+    </div>
+</aside>

@@ -49,5 +49,6 @@
         <p class="form-foot">Chưa có tài khoản? <a href="${pageContext.request.contextPath}/register">Đăng ký ngay</a></p>
     </section>
 </main>
+<script src="${pageContext.request.contextPath}/assets/app.js" defer></script>
 </body>
 </html>
