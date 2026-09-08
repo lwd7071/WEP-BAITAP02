@@ -15,9 +15,16 @@ import java.io.IOException;
 @WebServlet(urlPatterns = {"/home", "/manager/home", "/admin/home"})
 public class HomeController extends HttpServlet {
     private final IProductService productService;
+    private final vn.iotstar.service.ICategoryService categoryService;
 
-    public HomeController() { this(new ProductServiceImpl()); }
-    public HomeController(IProductService productService) { this.productService = productService; }
+    public HomeController() {
+        this(new ProductServiceImpl(), new vn.iotstar.service.impl.CategoryServiceImpl());
+    }
+
+    public HomeController(IProductService productService, vn.iotstar.service.ICategoryService categoryService) {
+        this.productService = productService;
+        this.categoryService = categoryService;
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -27,10 +34,14 @@ public class HomeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/home");
             return;
         }
-        request.setAttribute("pageTitle", "Trang quản lý cá nhân");
-        request.setAttribute("pageDescription", "Quản lý danh mục thuộc tài khoản đang đăng nhập.");
+        request.setAttribute("pageTitle", "Trang chủ mua sắm");
+        request.setAttribute("pageDescription", "Trải nghiệm mua sắm trực tuyến cao cấp.");
         User user = AuthUtil.currentUser(request);
-        request.setAttribute("latestProducts", productService.findLatestActive(user.getId(), 10));
+        int ownerId = user != null ? user.getId() : 0;
+        if (ownerId > 0) {
+            request.setAttribute("categories", categoryService.findAll(ownerId));
+            request.setAttribute("latestProducts", productService.findLatestActive(ownerId, 24));
+        }
         request.getRequestDispatcher("/WEB-INF/views/home.jsp").forward(request, response);
     }
 }
