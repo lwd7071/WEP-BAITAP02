@@ -27,6 +27,7 @@
         </c:if>
 
         <form action="${pageContext.request.contextPath}/reset-password" method="post" class="form-stack">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
             <p style="margin: 0 0 8px; color: #64748b; font-size: 14px;">Mã OTP đã được gửi tới <strong>${fn:escapeXml(email)}</strong>.</p>
             <label>Mã OTP (6 chữ số)
                 <input type="text" name="otp" required maxlength="6" pattern="[0-9]{6}"
