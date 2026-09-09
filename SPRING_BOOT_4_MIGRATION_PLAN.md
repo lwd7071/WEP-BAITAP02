@@ -35,7 +35,7 @@ Mô hình quyền sau cùng:
 
 Các bất biến bắt buộc:
 
-1. Hệ thống có đúng một tài khoản `ADMIN`.
+1. Database không cho phép nhiều hơn một ADMIN; khi ứng dụng khởi động, AdminInitializer bảo đảm hệ thống có đúng một ADMIN.
 2. Mọi tài khoản tạo từ đăng ký local, Google OAuth hoặc màn hình admin tạo user đều có role `USER`.
 3. Không có form/API công khai nào nhận `role` từ client.
 4. Không được xóa, khóa hoặc hạ quyền admin duy nhất.
@@ -198,9 +198,9 @@ spring.security.oauth2.client.registration.google.client-secret=${GOOGLE_CLIENT_
 spring.security.oauth2.client.registration.google.scope=openid,profile,email
 
 app.upload-dir=${UPLOAD_DIR}
-app.admin.username=${ADMIN_USERNAME:admin}
-app.admin.email=${ADMIN_EMAIL:admin@iotstar.vn}
-app.admin.password=${ADMIN_PASSWORD}
+app.admin.username=${APP_ADMIN_USERNAME:admin}
+app.admin.email=${APP_ADMIN_EMAIL:admin@iotstar.vn}
+app.admin.password=${APP_ADMIN_PASSWORD}
 ```
 
 Không được để fallback mật khẩu DB như `lvvd7071` trong source. Không commit secret.
@@ -256,16 +256,26 @@ Không trả entity User trực tiếp qua API. `UserDto` tuyệt đối không 
 
 Tạo `sql/05-spring-boot-4-role-auth-migration.sql`, chạy được nhiều lần an toàn:
 
-1. Thêm cột mới nếu chưa tồn tại: `role`, `provider`, `provider_id`, `otp_code`, `otp_purpose`, `updated_date`.
-2. Chuyển dữ liệu:
+1. Thêm cột mới nếu chưa tồn tại: `role NVARCHAR(20)`, `provider NVARCHAR(20)`, `provider_id NVARCHAR(255)`, `otp_code NVARCHAR(10)`, `otp_expiry DATETIME2`, `otp_purpose NVARCHAR(50)`, `created_date DATETIME2`, `updated_date DATETIME2`.
+2. Chuyển đổi cột `status` từ kiểu số cũ sang chuỗi `NVARCHAR(20)` cho enum `@Enumerated(EnumType.STRING)`:
+   - Tạo cột tạm `status_new NVARCHAR(20)`.
+   - Chuyển dữ liệu:
+     + `status = 0` cũ -> `status_new = 'PENDING'`
+     + `status = 1` cũ -> `status_new = 'ACTIVE'`
+     + Giá trị không hợp lệ -> dừng migration và báo lỗi.
+   - Đặt `status_new` thành `NOT NULL` sau khi kiểm tra không còn giá trị NULL.
+   - Xóa constraint/default liên quan tới cột `status` cũ nếu có.
+   - Drop cột `status` cũ.
+   - Đổi tên `status_new` thành `status` bằng `sp_rename 'dbo.users.status_new', 'status', 'COLUMN'`.
+   - Entity `User` ánh xạ `@Enumerated(EnumType.STRING)`.
+3. Chuyển dữ liệu phân quyền và tài khoản:
    - Username `admin` -> `role = 'ADMIN'`.
    - Mọi user khác, kể cả manager -> `role = 'USER'`.
    - `role_id` cũ không còn được code mới sử dụng.
-   - `status = 0` cũ -> `PENDING`; `status = 1` cũ -> `ACTIVE`.
    - User hiện có -> `provider = 'LOCAL'`.
    - Chuyển `code` cũ sang `otp_code` nếu cần.
-3. Gán tất cả Category cũ về `admin.id`. Trước khi gán phải xử lý trùng `category_name` giữa owner; không được xóa âm thầm. Nếu trùng, migration dừng và báo danh sách trùng để xử lý.
-4. Tạo filtered unique index SQL Server bảo đảm tối đa một admin:
+4. Gán tất cả Category cũ về `admin.id`. Trước khi gán phải xử lý trùng `category_name` giữa owner; không được xóa âm thầm. Nếu trùng, migration dừng và báo danh sách trùng để xử lý.
+5. Tạo filtered unique index SQL Server bảo đảm tối đa một admin:
 
 ```sql
 CREATE UNIQUE INDEX uk_users_single_admin
@@ -273,15 +283,17 @@ ON dbo.users(role)
 WHERE role = 'ADMIN';
 ```
 
-5. Không drop cột cũ ở migration đầu. Sau khi ứng dụng mới chạy và test pass mới tạo `06-drop-legacy-columns.sql` để bỏ `role_id`, `code` nếu muốn.
+6. Không drop cột cũ ở migration đầu. Sau khi ứng dụng mới chạy và test pass mới tạo `06-drop-legacy-columns.sql` để bỏ `role_id`, `code` nếu muốn.
 
 ### 5.5 Password hiện đang lưu plaintext
 
-Phải xử lý trước khi bật Spring Security:
+PasswordMigrationRunner được phát triển và kiểm thử tại Vòng 10.
+Các test Security trước Vòng 10 sử dụng fixture đã mã hóa BCrypt.
+Runner phải được chạy trên bản sao/backup database trước Acceptance Test và trước lần đăng nhập đầu tiên bằng tài khoản legacy.
 
 - Tạo runner migration một lần: với user `provider=LOCAL`, nếu password không bắt đầu `$2a$`, `$2b$` hoặc `$2y$`, encode BCrypt rồi lưu.
-- Runner phải idempotent, không hash lại chuỗi BCrypt.
-- Admin initializer đọc `ADMIN_PASSWORD`; nếu admin chưa có thì tạo BCrypt, nếu đã có password plaintext thì migrate.
+- Runner phải có cờ cấu hình `app.migration.password.enabled=false` và bảo đảm idempotent (không hash lại chuỗi BCrypt).
+- Admin initializer đọc `APP_ADMIN_PASSWORD`; nếu admin chưa có thì tạo BCrypt, nếu đã có password plaintext thì migrate.
 - Sau khi migration password pass, không còn code nào được so sánh `password.equals(...)`.
 
 ## 6. Repository mới và truy vấn chính xác
@@ -303,7 +315,7 @@ boolean existsByPhoneAndIdNot(String phone, Integer id);
 long countByRole(Role role);
 ```
 
-Tìm kiếm admin dùng `JpaSpecificationExecutor<User>` hoặc một `@Query` có phân trang. `keyword` phải match không phân biệt hoa thường trên `username`, `fullName`, `email`, `phone`; filter tùy chọn `status` và `provider`. Kết quả `Page<User>` sort mặc định `createdDate DESC, id DESC`.
+Tìm kiếm admin dùng `JpaSpecificationExecutor<User>` hoặc một `@Query` có phân trang. `keyword` phải match không phân biệt hoa thường trên `username`, `fullName`, `email`, `phone`; filter tùy chọn `status` và `provider`. Controller nhận request parameter `q` và truyền xuống service/repository dưới tên biến `keyword`. Kết quả `Page<User>` sort mặc định `createdDate DESC, id DESC`.
 
 ### 6.2 `CategoryRepository`
 
@@ -932,109 +944,15 @@ docs: document Spring Boot setup migrations and environment variables
 
 ## 18. Kế hoạch triển khai TDD chi tiết (RED – GREEN – REFACTOR)
 
-> Mục này quy định quy trình Test-Driven Development chuẩn cho toàn bộ quá trình chuyển đổi sang Spring Boot, tuân thủ nguyên tắc **Vertical Slice (Lát cắt dọc - Tracer Bullet)**.
-> Tuyệt đối không làm theo kiểu Horizontal Slice (không viết dồn toàn bộ test rồi mới viết code).
-> Mỗi tính năng đều đi qua chu trình: **RED** (viết 1 test hành vi cụ thể, test fail) ➔ **GREEN** (viết lượng code tối thiểu để test pass) ➔ **REFACTOR** (tối ưu mã nguồn, test vẫn pass).
-
-### 18.1 Bảng tổng hợp Endpoint chi tiết cho toàn hệ thống
-
-| Chức năng | Method | Endpoint | Quyền | Params / Body | Kết quả |
-|---|---|---|---|---|---|
-| Đăng nhập | GET | `/login` | Public | — | Hiển thị JSP `login.jsp` |
-| Đăng nhập local | POST | `/login` | Public | `username`, `password`, `remember-me` | Spring Security xử lý, redirect `/home` hoặc `/admin/categories` |
-| Đăng ký | GET | `/register` | Public | — | Hiển thị JSP `register.jsp` |
-| Đăng ký | POST | `/register` | Public | Form `RegisterForm` | Tạo `USER/PENDING`, gửi OTP, redirect `/verify-otp?email=...` |
-| Form xác thực OTP | GET | `/verify-otp` | Public | `email` | Hiển thị `verify-otp.jsp` |
-| Xác nhận kích hoạt OTP | POST | `/activate` | Public | `email`, `otp` | Kích hoạt tài khoản `ACTIVE`, redirect `/login?verified=true` |
-| Gửi lại OTP | POST | `/otp/resend` | Public | `email` | Sinh OTP mới, gửi email |
-| Quên mật khẩu | POST | `/forgot-password` | Public | `username` | Gửi reset OTP, lưu userId vào session, redirect `/reset-password` |
-| Form đặt lại mật khẩu | GET | `/reset-password` | Public (cần session) | — | Hiển thị `reset-password.jsp` |
-| Đặt lại mật khẩu | POST | `/reset-password` | Public | `otp`, `password`, `confirmPassword` | Cập nhật mật khẩu BCrypt, xóa OTP, giữ role USER |
-| Google OAuth Login | GET | `/oauth2/authorization/google` | Public | — | Chuyển hướng sang Google Consent Screen |
-| Google OAuth Callback | GET | `/login/oauth2/code/google` | Public | Google authorization code | Spring Security xử lý, chuyển hướng theo role |
-| Đăng xuất | POST | `/logout` | Authenticated | CSRF token | Invalidate session, xóa cookie remember-me, redirect `/login?logout` |
-| Trang chủ | GET | `/home` (hoặc `/`) | Authenticated | — | Hiển thị catalog sản phẩm active của Admin |
-| Danh sách sản phẩm public | GET | `/products` | Authenticated | `keyword`, `categoryId`, `page=0`, `size=12` | Hiển thị catalog phân trang của Admin |
-| Chi tiết sản phẩm public | GET | `/products/{id}` | Authenticated | path `{id}` | Hiển thị chi tiết (chỉ active product của Admin) |
-| Trang cá nhân | GET | `/profile` | Authenticated | — | Hiển thị `profile.jsp` với thông tin user đăng nhập |
-| Cập nhật cá nhân | POST | `/profile` | Authenticated | multipart form (`fullName`, `phone`, `avatar`) | Cập nhật thông tin (không đổi role/status/provider) |
-| Xem ảnh tải lên | GET | `/image` | Public | `fname` | Trả về stream byte ảnh an toàn qua `UploadService` |
-| Danh sách Category admin | GET | `/admin/categories` | ADMIN | `keyword`, `status`, `page=0`, `size=10` | Hiển thị `admin/category-list.jsp` |
-| Form tạo Category | GET | `/admin/categories/create` | ADMIN | — | Hiển thị `admin/category-add.jsp` |
-| Lưu Category mới | POST | `/admin/categories/create` | ADMIN | multipart `CategoryForm` | Owner luôn là Admin; redirect `/admin/categories` |
-| Form sửa Category | GET | `/admin/categories/{id}/edit` | ADMIN | path `{id}` | Hiển thị `admin/category-edit.jsp` |
-| Cập nhật Category | POST | `/admin/categories/{id}/edit` | ADMIN | multipart form | Cập nhật; redirect `/admin/categories` |
-| Xóa Category | POST | `/admin/categories/{id}/delete` | ADMIN | path `{id}` + CSRF | Xóa an toàn (chặn nếu có Product); redirect list |
-| Danh sách User admin | GET | `/admin/users` | ADMIN | `keyword`, `status`, `provider`, `page=0`, `size=10` | Hiển thị `admin/user-list.jsp` |
-| Form tạo User | GET | `/admin/users/create` | ADMIN | — | Hiển thị `admin/user-add.jsp` |
-| Lưu User mới | POST | `/admin/users/create` | ADMIN | form `UserAdminCreateForm` | Luôn tạo role `USER`, `ACTIVE`, encode BCrypt |
-| Form sửa User | GET | `/admin/users/{id}/edit` | ADMIN | path `{id}` | Hiển thị `admin/user-edit.jsp` |
-| Cập nhật User | POST | `/admin/users/{id}/edit` | ADMIN | form `UserAdminUpdateForm` | Không cho phép đổi thành role ADMIN |
-| Khóa / Mở User | POST | `/admin/users/{id}/status` | ADMIN | path `{id}` + CSRF | Đổi `ACTIVE <-> BLOCKED`; chặn thao tác trên Admin |
-| Xóa User | POST | `/admin/users/{id}/delete` | ADMIN | path `{id}` + CSRF | Xóa USER; chặn tuyệt đối không cho xóa Admin |
-| API Category | GET/POST/PUT/DELETE | `/api/categories/**` | USER (GET) / ADMIN (All) | JSON / Query params | Giữ nguyên nếu có client ngoài gọi, trả `ApiResponse<T>` |
-| API Product | GET/POST/PUT/DELETE | `/api/products/**` | USER (GET) / ADMIN (All) | JSON / Query params | Giữ nguyên nếu có client ngoài gọi, trả `ApiResponse<T>` |
-| API User | GET/POST/PUT/PATCH/DELETE | `/api/users/**` | ADMIN | JSON / Query params | Quản trị user an toàn, trả `ApiResponse<T>` |
-
-*Ghi chú*: Nếu hệ thống chỉ thuần JSP/MVC thì ưu tiên hoàn thiện toàn bộ controller MVC trước; các API controller chỉ phục vụ khi có yêu cầu gọi REST.
+> **Quy tắc Single Source of Truth**:
+> - Toàn bộ đặc tả kỹ thuật, cấu trúc package (mục 3), cấu trúc views/JSP (mục 4 & 11), danh sách file loại bỏ (mục 12), phân quyền bảo mật (mục 8) và bộ Endpoint MVC/API (mục 9 & 10) được định nghĩa **DUY NHẤT** tại các Mục 1 đến 17 ở trên.
+> - Mục 18 này **CHỈ** định nghĩa quy trình thực thi **12 Vòng TDD (RED – GREEN – REFACTOR)** theo từng lát cắt dọc (Vertical Slice - Tracer Bullet). Tuyệt đối không làm theo kiểu Horizontal Slice (không viết dồn toàn bộ test rồi mới viết code).
+> - Trong từng vòng, Luna tham chiếu trực tiếp đến các bảng endpoint ở mục 8, 9, 10 và cấu trúc ở mục 3, 4; không được tự suy diễn hoặc định nghĩa thêm bộ endpoint khác.
+> - **Quyết định về REST API**: Phải giữ và migration các API Category/Product hiện có sang Spring Boot (mục 10.1, 10.2). Phải bổ sung User API theo mục 10.3. MVC/JSP được ưu tiên triển khai trước, nhưng API vẫn thuộc Definition of Done.
 
 ---
 
-### 18.2 Cấu trúc mã nguồn chuẩn cho Spring Boot + JSP/JSTL
-
-Để tránh tự đoán cấu trúc, toàn bộ dự án phải tuân theo sơ đồ:
-
-```text
-src/main/java/vn/iotstar/
-├── WepBaitap02Application.java          # Kế thừa SpringBootServletInitializer
-├── config/
-│   ├── SecurityConfig.java              # Spring Security filter chain, CSRF, URL authorization
-│   ├── WebMvcConfig.java                # View controller, static resources
-│   └── AdminInitializer.java            # Khởi tạo ADMIN duy nhất từ biến môi trường
-├── controller/
-│   ├── AuthController.java              # /login, /register, /verify-otp, /forgot-password, /reset-password
-│   ├── HomeController.java              # / và /home
-│   ├── ProfileController.java           # /profile, /image
-│   ├── PublicProductController.java     # /products, /products/{id}
-│   └── admin/
-│       ├── AdminCategoryController.java # /admin/categories/**
-│       ├── AdminUserController.java     # /admin/users/**
-│       └── AdminProductController.java  # /admin/products/**
-├── repository/
-│   ├── UserRepository.java              # Spring Data JPA UserRepository
-│   ├── CategoryRepository.java          # Spring Data JPA CategoryRepository
-│   └── ProductRepository.java           # Spring Data JPA ProductRepository
-├── service/
-│   ├── AuthService.java, UserService.java, CategoryService.java, ProductService.java
-│   ├── OtpService.java, EmailService.java, UploadService.java
-└── runner/
-    └── PasswordMigrationRunner.java     # Hash BCrypt mật khẩu plaintext cũ có cờ bật tắt
-
-src/main/resources/
-├── application.properties               # Cấu hình Spring Boot, JPA, Mail, OAuth2, Admin env
-└── application-test.properties          # Cấu hình cho môi trường test (H2/DB test, Mock mail)
-
-src/main/webapp/
-└── WEB-INF/views/
-    ├── login.jsp, register.jsp, verify-otp.jsp, reset-password.jsp, home.jsp, profile.jsp
-    ├── product-list.jsp, product-detail.jsp
-    ├── admin/
-    │   ├── category-list.jsp, category-add.jsp, category-edit.jsp
-    │   ├── user-list.jsp, user-add.jsp, user-edit.jsp
-    │   └── product-list.jsp, product-add.jsp, product-edit.jsp
-    └── partials/                        # Thay thế SiteMesh
-        ├── head.jspf, topbar.jspf, admin-sidebar.jspf, footer.jspf, messages.jspf
-```
-
-Cấu hình JSP View Resolver bắt buộc trong `application.properties`:
-```properties
-spring.mvc.view.prefix=/WEB-INF/views/
-spring.mvc.view.suffix=.jsp
-```
-
----
-
-### 18.3 Trình tự 12 vòng TDD chuẩn (Vertical Slices)
+### 18.1 Trình tự 12 vòng TDD chuẩn (Vertical Slices)
 
 #### Vòng 1: Bootstrap Spring Boot Shell & JSP/JSTL View Resolver (Tracer Bullet)
 *Mục tiêu*: Khởi tạo ứng dụng Spring Boot packaging `war`, kiểm tra Spring context load và JSP resolver.
@@ -1044,45 +962,53 @@ spring.mvc.view.suffix=.jsp
   - Viết test `contextLoads()`.
   - *Kết quả*: FAIL vì chưa có class `WepBaitap02Application` và cấu hình Spring Boot.
 - **GREEN**:
-  - Cập nhật `pom.xml`: Khai báo parent Spring Boot (hoặc 3.4.x tương thích Java 21), packaging `war`, các dependency (`spring-boot-starter-web`, `tomcat-embed-jasper`, `jakarta.servlet.jsp.jstl`).
+  - Cập nhật `pom.xml` sử dụng đúng Spring Boot `4.1.1` theo quyết định tại mục 2. Không được tự chuyển sang Spring Boot 3.x. Nếu phiên bản không tải được trên Maven Central, dừng và báo lại.
+  - Packaging `war`, khai báo các dependency theo mục 4.1 (`spring-boot-starter-web`, `tomcat-embed-jasper`, `jakarta.servlet.jsp.jstl`,...).
   - Tạo `WepBaitap02Application.java` (`extends SpringBootServletInitializer`).
-  - Tạo `application.properties` cấu hình view prefix `/WEB-INF/views/`, suffix `.jsp`.
+  - Tạo `application.properties` cấu hình view prefix `/WEB-INF/views/`, suffix `.jsp` theo mục 4.3.
   - *Kết quả*: `mvn test` ➔ `contextLoads()` PASS.
 - **REFACTOR**:
   - Dọn dẹp các dependency compile-time Servlet/JSP cũ khỏi POM.
 
 ---
 
-#### Vòng 2: Migration dữ liệu Legacy (Owner, Role & Bất biến 1 Admin)
+#### Vòng 2: Migration dữ liệu Legacy & Bất biến 1 Admin
 *Mục tiêu*: Chuyển toàn bộ dữ liệu Product/Category cũ về một Admin duy nhất, chuyển mọi user khác thành `USER`, áp dụng ràng buộc DB.
 
-- **Các bước migration**:
-  1. Chọn hoặc tạo tài khoản ADMIN duy nhất từ cấu hình (`AdminInitializer`).
-  2. Chuyển `owner_id` của toàn bộ Product cũ sang ADMIN.
-  3. Chuyển `owner_id` của Category sang ADMIN.
-  4. Chuyển toàn bộ tài khoản còn lại thành role `USER`.
-  5. Không thay đổi OTP, provider, email, trạng thái kích hoạt.
-  6. Kiểm tra không còn Product/Category thuộc USER.
-  7. Áp dụng unique filtered index SQL Server: `CREATE UNIQUE INDEX uk_users_single_admin ON dbo.users(role) WHERE role = 'ADMIN'`.
-- **Cấu hình biến môi trường Admin**:
-  ```properties
-  app.admin.username=${APP_ADMIN_USERNAME:admin}
-  app.admin.email=${APP_ADMIN_EMAIL:admin@iotstar.vn}
-  app.admin.password=${APP_ADMIN_PASSWORD}
-  ```
+- **Quy tắc bất biến Admin**:
+  1. Database không cho phép tồn tại nhiều hơn một ADMIN (bảo đảm bởi filtered unique index SQL Server `uk_users_single_admin`).
+  2. Khi ứng dụng khởi động (`AdminInitializer`):
+     - Nếu chưa có ADMIN: tạo một ADMIN từ biến môi trường (`APP_ADMIN_USERNAME`, `APP_ADMIN_EMAIL`, `APP_ADMIN_PASSWORD`).
+     - Nếu có đúng một ADMIN: tiếp tục hoạt động bình thường.
+     - Nếu có nhiều hơn một ADMIN trong dữ liệu legacy: dừng ứng dụng và báo lỗi migration.
+- **Các bước migration dữ liệu**:
+  1. Xác định hoặc tạo ADMIN duy nhất.
+  2. Chuyển `categories.user_id` của toàn bộ Category cũ sang ADMIN.
+  3. Product tự động thuộc ADMIN thông qua quan hệ `products.category_id -> categories.user_id`.
+  4. Không cập nhật `owner_id` của Product vì bảng `Product` không có cột `owner_id` (theo mục 5.3).
+  5. Kiểm tra mọi Product đều liên kết tới Category thuộc ADMIN.
+  6. Chuyển toàn bộ tài khoản còn lại thành role `USER`.
+  7. Không thay đổi OTP, provider, email, trạng thái kích hoạt.
+  8. Áp dụng unique filtered index SQL Server:
+     ```sql
+     CREATE UNIQUE INDEX uk_users_single_admin ON dbo.users(role) WHERE role = 'ADMIN';
+     ```
+- **Quy định môi trường test Database**:
+  - Unit/repository test thông thường có thể dùng H2.
+  - Test file migration `05`, filtered unique index và schema thực tế bắt buộc phải chạy trên SQL Server (Testcontainers hoặc database SQL Server test riêng). Không tuyên bố migration pass chỉ dựa trên H2.
 - **RED**:
   - Tạo `LegacyDataMigrationTest.java`:
-    + `allLegacyProducts_ShouldBelongToSingleAdmin()`
+    + `allLegacyProducts_ShouldReferenceCategoryOwnedByAdmin()`
     + `allNonAdminAccounts_ShouldHaveRoleUser()`
     + `migration_ShouldNotChangeOtpOrProvider()`
     + `migration_ShouldBeIdempotent()`
     + `secondAdminInsert_ShouldBeRejected()`
     + `applicationStartup_WhenAdminMissing_ShouldCreateConfiguredAdmin()`
-  - *Kết quả*: FAIL vì chưa có migration script và `AdminInitializer`.
+  - *Kết quả*: FAIL vì chưa có script migration 05 và `AdminInitializer`.
 - **GREEN**:
-  - Viết SQL script `sql/05-spring-boot-4-role-auth-migration.sql`.
-  - Tạo `AdminInitializer.java`: Khi khởi động, nếu DB chưa có admin thì đọc từ biến môi trường và tạo; nếu đã có 1 admin thì bỏ qua; nếu có nhiều hơn 1 admin cũ thì ném lỗi dừng ứng dụng để xử lý dữ liệu.
-  - *Kết quả*: Test PASS.
+  - Viết SQL script `sql/05-spring-boot-4-role-auth-migration.sql` thực hiện đúng 8 bước trên.
+  - Viết `AdminInitializer.java` theo đúng quy tắc bất biến.
+  - *Kết quả*: Test PASS trên SQL Server.
 - **REFACTOR**:
   - Đảm bảo script migration có thể chạy nhiều lần mà không sinh lỗi (idempotent).
 
@@ -1091,10 +1017,10 @@ spring.mvc.view.suffix=.jsp
 #### Vòng 3: Entity & Repository (Spring Data JPA với Search & Paging)
 *Mục tiêu*: Xây dựng Entity chuẩn và Repository truy vấn phân trang tại DB.
 
-- **Đặc tả tìm kiếm & phân trang**:
-  - Category: `keyword`, `status`, `page`, `size` (tìm chứa từ khóa không phân biệt hoa thường theo tên).
-  - User: `keyword`, `status`, `provider`, `page`, `size` (tìm theo username, họ tên, email hoặc số điện thoại).
-  - Product: `keyword`, `categoryId`, `page`, `size` (tìm theo tên/mô tả nhưng luôn giới hạn `category.owner.role = 'ADMIN'` và `status = 1`).
+- **Quy tắc tìm kiếm**: Tham số tìm kiếm thống nhất trên HTTP là `q` (theo mục 9.2, 9.3, 10); Controller nhận `q` và truyền xuống service/repository dưới tên biến `keyword`.
+  - Category: `q`, `status`, `page`, `size` (tìm chứa từ khóa không phân biệt hoa thường theo tên).
+  - User: `q`, `status`, `provider`, `page`, `size` (tìm theo username, họ tên, email hoặc số điện thoại).
+  - Product: `q`, `categoryId`, `page`, `size` (tìm theo tên/mô tả nhưng luôn giới hạn Category owner `ADMIN` và `status = 1`).
 - **RED**:
   - Tạo `UserRepositoryTest.java`, `CategoryRepositoryTest.java`, `ProductRepositoryTest.java` (dùng `@DataJpaTest`):
     + `searchCategory_ShouldIgnoreCase()`
@@ -1103,8 +1029,8 @@ spring.mvc.view.suffix=.jsp
     + `publicSearch_ShouldOnlyReturnActiveAdminProducts()`
   - *Kết quả*: FAIL vì chưa có interface Spring Data JPA.
 - **GREEN**:
-  - Cập nhật các Entity: `User.java`, `Category.java`, `Product.java`.
-  - Tạo interface `UserRepository`, `CategoryRepository`, `ProductRepository` kế thừa `JpaRepository` và `JpaSpecificationExecutor`.
+  - Cập nhật các Entity: `User.java`, `Category.java`, `Product.java` theo mục 5.
+  - Tạo interface `UserRepository`, `CategoryRepository`, `ProductRepository` kế thừa `JpaRepository` theo mục 6.
   - *Kết quả*: Test PASS.
 - **REFACTOR**:
   - Chuẩn hóa sort mặc định trong `Pageable` (`createdDate DESC, id DESC`).
@@ -1117,48 +1043,56 @@ spring.mvc.view.suffix=.jsp
 - **RED**:
   - Tạo `SecurityFilterChainTest.java` (dùng MockMvc):
     + `anonymousAccessProtectedWeb_ShouldRedirectToLogin()`: Truy cập `/home` khi chưa login ➔ 302 về `/login`.
-    + `anonymousAccessProtectedApi_ShouldReturn401Json()`: Gọi `/api/categories` khi chưa login ➔ 401 JSON kèm `ApiResponse`.
+    + `anonymousAccessProtectedApi_ShouldReturn401Json()`: Gọi GET `/api/categories` khi chưa login ➔ 401 JSON kèm `ApiResponse`.
     + `userAccessAdminUrl_ShouldReturn403()`: User thường vào `/admin/**` ➔ 403.
     + `adminAccessAdminUrl_ShouldReturn200()`: Admin vào `/admin/**` ➔ 200.
     + `postLogoutWithoutCsrf_ShouldReturn403()`: Logout POST không CSRF ➔ 403.
+    + `postLogoutWithCsrf_ShouldInvalidateSessionAndRedirect()`: Logout POST có CSRF ➔ Invalidate session & redirect `/login?logout`.
   - *Kết quả*: FAIL vì chưa cấu hình `SecurityConfig`.
 - **GREEN**:
   - Viết `CustomUserDetailsService.java` tải user theo username, map role `ROLE_ADMIN` / `ROLE_USER`.
-  - Viết `SecurityConfig.java`: Cấu hình permitAll, hasRole('ADMIN'), CSRF cho JSP form, Remember-me, Form Login.
-  - Tạo custom `AuthenticationEntryPoint` và `AccessDeniedHandler` trả JSON cho `/api/**` và redirect cho web.
+  - Viết `SecurityConfig.java`: Cấu hình permitAll, hasRole('ADMIN'), CSRF cho form JSP, Remember-me, Form Login theo đúng mục 8.1.
+  - Cấu hình custom `AuthenticationEntryPoint` và `AccessDeniedHandler` để trả JSON cho `/api/**` và redirect cho web.
   - *Kết quả*: Test PASS.
 - **REFACTOR**:
-  - Bật `@EnableMethodSecurity` cho các Service method nhạy cảm.
+  - Bật `@EnableMethodSecurity` cho các Service method nhạy cảm của Admin.
 
 ---
 
 #### Vòng 5: Xác thực Local, Đăng ký & Chu trình OTP
 *Mục tiêu*: Quản lý đăng ký tài khoản local, xác thực kích hoạt qua OTP, quên mật khẩu và đặt lại mật khẩu an toàn.
 
+- **Endpoint áp dụng**: Chuẩn hóa theo mục 8.4:
+  - Đăng ký: `GET /register`, `POST /register`
+  - Kích hoạt OTP: `GET /verify-otp?email=...`, `POST /verify-otp`
+  - Gửi lại OTP: `POST /verify-otp/resend`
+  - Quên mật khẩu: `POST /forgot-password`
+  - Đặt lại mật khẩu: `GET /reset-password`, `POST /reset-password`
 - **RED**:
   - Tạo `AuthServiceTest.java` và `AuthControllerTest.java` (MockMvc):
     + `register_AlwaysAssignRoleUserAndStatusPending()`
     + `activate_ValidOtp_ShouldActivateAccountAndPreserveRoleUser()`
     + `activate_InvalidOrExpiredOtp_ShouldFail()`
+    + `resendOtp_ShouldGenerateNewOtpAndPreservePendingStatus()`
     + `requestPasswordReset_ShouldGenerateResetOtp()`
     + `resetPassword_ValidOtp_ShouldUpdateBcryptPasswordAndPreserveRole()`
   - *Kết quả*: FAIL vì chưa có `AuthService`, `OtpService`, `EmailService`.
 - **GREEN**:
   - Viết `OtpService` (sinh mã 6 số ngẫu nhiên an toàn, hết hạn 5 phút).
-  - Viết `EmailService` (dùng `JavaMailSender`, gửi mail kích hoạt/reset).
-  - Viết `AuthService` triển khai đầy đủ các bước nghiệp vụ.
-  - Viết `AuthController` ánh xạ các endpoint GET/POST theo bảng mục 18.1.
+  - Viết `EmailService` (dùng `JavaMailSender`, gửi mail kích hoạt/reset; test dùng mock).
+  - Viết `AuthService` triển khai đầy đủ các bước nghiệp vụ mục 7.1.
+  - Viết `AuthController` ánh xạ các endpoint theo mục 8.4.
   - *Kết quả*: Test PASS.
 - **REFACTOR**:
-  - Đảm bảo trong mọi trường hợp (kể cả client cố gửi field `role`), role của user luôn cố định là `USER`.
+  - Đảm bảo trong mọi trường hợp (kể cả request cố gửi param `role`), role của user luôn cố định là `USER`.
 
 ---
 
 #### Vòng 6: Google OAuth2 & Chống cướp quyền
 *Mục tiêu*: Tích hợp đăng nhập Google an toàn, ngăn chặn việc chiếm quyền tài khoản Admin hoặc ghi đè user local chưa xác minh.
 
-- **Quy tắc xử lý tài khoản Google**:
-  1. Trùng email admin local ➔ Từ chối Google login với thông báo lỗi rõ ràng.
+- **Quy tắc xử lý tài khoản Google (theo mục 8.3)**:
+  1. Trùng email ADMIN local ➔ Từ chối Google login với thông báo lỗi rõ ràng.
   2. Trùng USER đã đăng ký local ➔ Không tự động chiếm/link tài khoản nếu chưa xác minh.
   3. USER đã liên kết Google ➔ Cho phép đăng nhập bình thường.
   4. User có trạng thái `BLOCKED` trong DB ➔ Bị từ chối đăng nhập.
@@ -1174,32 +1108,41 @@ spring.mvc.view.suffix=.jsp
 - **GREEN**:
   - Cấu hình OAuth2 Client trong `application.properties`.
   - Viết `CustomOAuth2UserService.java` kế thừa `DefaultOAuth2UserService` cài đặt các quy tắc trên.
-  - Bổ sung nút đăng nhập Google trong `login.jsp`.
+  - Bổ sung nút đăng nhập Google trong `login.jsp` trỏ `/oauth2/authorization/google`.
   - *Kết quả*: Test PASS.
 - **REFACTOR**:
   - Xử lý va chạm tên người dùng (username collision) khi sinh username tự động từ email Google.
 
 ---
 
-#### Vòng 7: Quản trị Danh mục (Category CRUD & Search)
+#### Vòng 7: Quản trị Danh mục (Category CRUD & Search - Admin)
 *Mục tiêu*: Hoàn thiện toàn bộ chức năng quản trị Category dành riêng cho Admin, hỗ trợ tìm kiếm phân trang.
 
+- **Endpoint áp dụng**: Chuẩn hóa theo mục 9.2 & 10.1:
+  - `GET /admin/categories?q=&page=0&size=10`
+  - `GET /admin/categories/new`
+  - `POST /admin/categories`
+  - `GET /admin/categories/{id}/edit`
+  - `POST /admin/categories/{id}/update`
+  - `POST /admin/categories/{id}/delete`
+  - REST API: `/api/categories/**`
 - **RED**:
-  - Tạo `AdminCategoryControllerTest.java` (MockMvc):
+  - Tạo `AdminCategoryControllerTest.java` và `ApiCategoryControllerTest.java` (MockMvc):
     + `listCategory_Admin_ShouldReturnPagedResult()`
-    + `searchCategory_ShouldFilterByKeyword()`
+    + `searchCategory_ShouldFilterByKeyword()` (param `q`)
     + `createCategory_ValidForm_ShouldPersistWithAdminOwner()`
     + `createCategory_DuplicateName_ShouldReturnValidationError()`
     + `editCategory_ValidForm_ShouldUpdate()`
     + `deleteCategory_WithoutProducts_ShouldDelete()`
     + `deleteCategory_WithProducts_ShouldReject()`
     + `userAccessAdminCategory_ShouldReturn403()`
-    + `getDeleteCategory_ShouldReturn405Or404()` (chặn xóa bằng method GET cũ)
+    + `getDeleteCategory_ShouldReturn405Or404()` (chặn tuyệt đối xóa bằng GET cũ)
   - *Kết quả*: FAIL.
 - **GREEN**:
-  - Viết `CategoryService` (CRUD, validate trùng tên, gán owner là Admin).
-  - Viết `AdminCategoryController` phục vụ giao diện JSP (`/admin/categories/**`).
-  - Cập nhật view JSP Category: Đổi link xóa thành form `POST` kèm CSRF.
+  - Viết `CategoryService` (CRUD, validate trùng tên, gán owner là Admin theo mục 7.3).
+  - Viết `AdminCategoryController` phục vụ giao diện JSP.
+  - Viết `ApiCategoryController` phục vụ REST API trả chuẩn `ApiResponse<CategoryDto>`.
+  - Cập nhật view JSP Category: Đổi link xóa thành form `POST` kèm CSRF token.
   - *Kết quả*: Test PASS.
 - **REFACTOR**:
   - Dọn dẹp `CategoryController` Servlet cũ và `ICategoryDao`.
@@ -1209,10 +1152,19 @@ spring.mvc.view.suffix=.jsp
 #### Vòng 8: Quản trị Người dùng (User Management - Admin)
 *Mục tiêu*: Cho phép Admin tìm kiếm, xem danh sách, thêm, sửa, khóa/mở và xóa user; bảo vệ Admin duy nhất.
 
+- **Endpoint áp dụng**: Chuẩn hóa theo mục 9.3 & 10.3:
+  - `GET /admin/users?q=&status=&provider=&page=0&size=10`
+  - `GET /admin/users/new`
+  - `POST /admin/users`
+  - `GET /admin/users/{id}/edit`
+  - `POST /admin/users/{id}/update`
+  - `POST /admin/users/{id}/toggle-status`
+  - `POST /admin/users/{id}/delete`
+  - REST API: `/api/users/**`
 - **RED**:
-  - Tạo `AdminUserControllerTest.java` (MockMvc):
+  - Tạo `AdminUserControllerTest.java` và `ApiUserControllerTest.java` (MockMvc):
     + `listUsers_ShouldExcludeOrProtectAdmin()`
-    + `searchUsers_ShouldReturnPagedResult()`
+    + `searchUsers_ShouldReturnPagedResult()` (param `q`)
     + `createUser_ShouldAlwaysAssignRoleUser()`
     + `editUser_ShouldNotAllowRoleEscalation()`
     + `blockUser_ShouldInvalidateFutureLogin()`
@@ -1220,30 +1172,36 @@ spring.mvc.view.suffix=.jsp
     + `userAccessAdminUsers_ShouldReturn403()`
   - *Kết quả*: FAIL.
 - **GREEN**:
-  - Viết `UserService` (tìm kiếm đa tiêu chí, tạo user role USER, chặn khóa/xóa Admin).
-  - Viết `AdminUserController` phục vụ giao diện JSP (`/admin/users/**`).
-  - Tạo các view `user-list.jsp`, `user-add.jsp`, `user-edit.jsp`.
+  - Viết `UserService` (tìm kiếm đa tiêu chí, tạo user role `USER`, chặn khóa/xóa Admin theo mục 7.2).
+  - Viết `AdminUserController` phục vụ giao diện JSP.
+  - Viết `ApiUserController` phục vụ REST API.
+  - Tạo các view `user-list.jsp`, `user-add.jsp`, `user-edit.jsp` trong `WEB-INF/views/admin/`.
   - *Kết quả*: Test PASS.
 - **REFACTOR**:
-  - Đảm bảo form sửa không hiển thị input chọn role để tránh tấn công mass-assignment.
+  - Đảm bảo form sửa không hiển thị input chọn role để tránh mass-assignment.
 
 ---
 
 #### Vòng 9: Quản lý Sản phẩm (Product Management & Public Catalog)
-*Mục tiêu*: Tách biệt hoàn toàn luồng quản trị sản phẩm của Admin và luồng xem danh mục của User/Khách.
+*Mục tiêu*: Tách biệt luồng CRUD sản phẩm của ADMIN và luồng xem catalog của USER/ADMIN đã đăng nhập. Khách chưa đăng nhập phải được chuyển hướng tới `/login`.
 
+- **Endpoint áp dụng**: Chuẩn hóa theo mục 9.1 & 10.2:
+  - Admin: `GET /admin/products`, `GET /admin/products/new`, `POST /admin/products`, `GET /admin/products/{id}/edit`, `POST /admin/products/{id}/update`, `POST /admin/products/{id}/delete`
+  - Public Catalog: `GET /products?q=&categoryId=&page=0&size=12`, `GET /products/{id}`
+  - REST API: `/api/products/**`
 - **RED**:
-  - Tạo `ProductServiceTest.java` và `PublicProductControllerTest.java` (MockMvc):
+  - Tạo `ProductServiceTest.java`, `PublicProductControllerTest.java`, `AdminProductControllerTest.java` (MockMvc):
     + `publicProductCatalog_ShouldOnlyShowActiveAdminProducts()`
     + `publicProductCatalog_DifferentUsers_SeeIdenticalCatalog()`
+    + `publicProductCatalog_Unauthenticated_ShouldRedirectToLogin()`
     + `productDetail_WhenInactive_ShouldReturn404()`
     + `adminProductCrud_FullWorkflow_Success()`
     + `userAttemptToMutateProduct_ShouldReturn403()`
   - *Kết quả*: FAIL.
 - **GREEN**:
-  - Viết `ProductService` tách biệt query admin và query public active.
+  - Viết `ProductService` tách biệt query admin và query public active theo mục 7.4.
   - Viết `AdminProductController` cho Admin quản lý sản phẩm.
-  - Viết `PublicProductController` cho người dùng xem danh mục/chi tiết.
+  - Viết `PublicProductController` cho người dùng xem catalog và chi tiết.
   - Sửa `home.jsp`, `product-list.jsp`, `product-detail.jsp` hiển thị catalog của Admin.
   - *Kết quả*: Test PASS.
 - **REFACTOR**:
@@ -1254,10 +1212,16 @@ spring.mvc.view.suffix=.jsp
 #### Vòng 10: Password Migration Runner (Plaintext sang BCrypt)
 *Mục tiêu*: Mã hóa mật khẩu plaintext cũ sang BCrypt với cờ bật/tắt an toàn.
 
-- **Cấu hình cờ migration**:
-  ```properties
-  app.migration.password.enabled=${PASSWORD_MIGRATION_ENABLED:false}
-  ```
+- **Quy trình triển khai & chạy**:
+  - `PasswordMigrationRunner` được phát triển và test ở Vòng 10.
+  - Trong các test Security trước đó, dữ liệu test fixture phải sử dụng sẵn mật khẩu BCrypt.
+  - Trước khi chạy acceptance test hoặc đăng nhập bằng dữ liệu production cũ:
+    1. Backup database SQL Server.
+    2. Cấu hình cờ `app.migration.password.enabled=true`.
+    3. Khởi động ứng dụng một lần.
+    4. Xác nhận toàn bộ mật khẩu plaintext đã được BCrypt (`$2a$`, `$2b$`, `$2y$`).
+    5. Tắt cấu hình về `app.migration.password.enabled=false`.
+    6. Khởi động lại ứng dụng rồi mới kiểm thử đăng nhập bằng tài khoản cũ.
 - **RED**:
   - Tạo `PasswordMigrationRunnerTest.java`:
     + `plaintextPassword_ShouldBeConvertedToBcrypt()`
@@ -1265,12 +1229,11 @@ spring.mvc.view.suffix=.jsp
     + `whenMigrationDisabled_ShouldNotRun()`
   - *Kết quả*: FAIL.
 - **GREEN**:
-  - Tạo `PasswordMigrationRunner.java` (`CommandLineRunner` hoặc `ApplicationRunner`).
-  - Kiểm tra `app.migration.password.enabled == true`. Lọc user local có password không khớp prefix BCrypt (`$2a$`, `$2b$`, `$2y$`) để hash và lưu.
-  - Chạy thử nghiệm thành công ➔ Chuyển cờ về `false`.
+  - Tạo `PasswordMigrationRunner.java` (`CommandLineRunner`).
+  - Kiểm tra điều kiện `app.migration.password.enabled == true`. Lọc user local có password không khớp prefix BCrypt để mã hóa và cập nhật DB.
   - *Kết quả*: Test PASS.
 - **REFACTOR**:
-  - Đảm bảo tính idempotent tuyệt đối (chạy nhiều lần không làm hỏng mật khẩu đã hash).
+  - Đảm bảo tính idempotent tuyệt đối (chạy nhiều lần không mã hóa lặp lại).
 
 ---
 
@@ -1284,7 +1247,7 @@ spring.mvc.view.suffix=.jsp
     ```
   - *Kết quả mong đợi*: Không tìm thấy bất kỳ kết quả nào trong `src/main/java`.
 - **GREEN**:
-  - Xóa danh sách file legacy:
+  - Xóa toàn bộ danh sách file legacy tại mục 12:
     + `vn/iotstar/config/JpaConfig.java`, `JpaLifecycleListener.java`
     + `META-INF/persistence.xml`
     + Toàn bộ package `vn/iotstar/dao/**`
@@ -1292,7 +1255,7 @@ spring.mvc.view.suffix=.jsp
     + `vn/iotstar/controller/WaitingController.java`
     + `vn/iotstar/util/AuthUtil.java`, `JsonUtil.java`
     + `WEB-INF/decorators/**`
-  - Thay thế SiteMesh bằng các fragment JSP trong `WEB-INF/views/partials/`.
+  - Thay thế SiteMesh bằng các fragment JSP trong `WEB-INF/views/partials/` theo mục 11.3.
   - *Kết quả*: `mvn clean package` build WAR thành công.
 - **REFACTOR**:
   - Dọn dẹp các import không dùng và tối ưu comment trong toàn bộ codebase.
@@ -1307,7 +1270,7 @@ spring.mvc.view.suffix=.jsp
   2. `localuser`: Role USER, tạo qua form đăng ký + xác thực OTP.
   3. `googleuser`: Role USER, tạo tự động qua Google OAuth.
 - **Kịch bản kiểm thử nghiệm thu (Manual + Automated)**:
-  1. Admin đăng nhập ➔ Thấy menu Category, Product, User; CRUD và tìm kiếm phân trang hoạt động chuẩn xác.
+  1. Admin đăng nhập ➔ Thấy menu Category, Product, User; CRUD và tìm kiếm phân trang hoạt động chuẩn xác theo mục 9 & 10.
   2. Local user đăng nhập ➔ Không thấy menu Admin; cố nhập URL `/admin/**` nhận 403 Forbidden.
   3. Google user đăng nhập ➔ Nhìn thấy catalog sản phẩm giống hệt Local user.
   4. Admin tạo Category/Product ➔ Cả 2 user đều nhìn thấy khi `status = 1`.
@@ -1318,11 +1281,11 @@ spring.mvc.view.suffix=.jsp
 
 ---
 
-### 18.4 Bảng theo dõi tiến độ TDD (Checklist thực thi 12 vòng)
+### 18.2 Bảng theo dõi tiến độ TDD (Checklist thực thi 12 vòng)
 
 | Vòng | Lát cắt nghiệp vụ | RED (Test viết trước) | GREEN (Code tối thiểu) | REFACTOR (Tối ưu) | Trạng thái |
 |:---:|:---|:---:|:---:|:---:|:---:|
-| **1** | Bootstrap Spring Boot Shell & JSP Resolver | [ ] | [ ] | [ ] | Chưa bắt đầu |
+| **1** | Bootstrap Spring Boot Shell & JSP Resolver | [x] | [x] | [x] | Hoàn thành |
 | **2** | Migration Dữ liệu Legacy & Bất biến 1 Admin | [ ] | [ ] | [ ] | Chưa bắt đầu |
 | **3** | Entity & Repository (Search + Paging) | [ ] | [ ] | [ ] | Chưa bắt đầu |
 | **4** | Spring Security & Phân quyền URL | [ ] | [ ] | [ ] | Chưa bắt đầu |
@@ -1334,4 +1297,3 @@ spring.mvc.view.suffix=.jsp
 | **10**| Password Migration Runner (BCrypt flag) | [ ] | [ ] | [ ] | Chưa bắt đầu |
 | **11**| Dọn dẹp Legacy Code & Static Check | [ ] | [ ] | [ ] | Chưa bắt đầu |
 | **12**| Acceptance Testing End-to-End | [ ] | [ ] | [ ] | Chưa bắt đầu |
-
