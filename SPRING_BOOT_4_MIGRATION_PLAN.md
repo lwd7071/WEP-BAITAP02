@@ -1287,7 +1287,7 @@ docs: document Spring Boot setup migrations and environment variables
 |:---:|:---|:---:|:---:|:---:|:---:|
 | **1** | Bootstrap Spring Boot Shell & JSP Resolver | [x] | [x] | [x] | Hoàn thành |
 | **2** | Migration Dữ liệu Legacy & Bất biến 1 Admin | [x] | [x] | [x] | Hoàn thành |
-| **3** | Entity & Repository (Search + Paging) | [ ] | [ ] | [ ] | Chưa bắt đầu |
+| **3** | Entity & Repository (Search + Paging) | [x] | [x] | [x] | Hoàn thành |
 | **4** | Spring Security & Phân quyền URL | [ ] | [ ] | [ ] | Chưa bắt đầu |
 | **5** | Xác thực Local & Chu trình OTP | [ ] | [ ] | [ ] | Chưa bắt đầu |
 | **6** | Google OAuth2 & Chống cướp quyền | [ ] | [ ] | [ ] | Chưa bắt đầu |

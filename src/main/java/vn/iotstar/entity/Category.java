@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@NamedQuery(name = "Category.findAllByOwner", query = "SELECT c FROM Category c WHERE c.owner.id = :ownerId ORDER BY c.categoryId")
 @Table(name = "categories", uniqueConstraints = @jakarta.persistence.UniqueConstraint(name = "uk_categories_owner_name", columnNames = {"user_id", "category_name"}))
 public class Category implements Serializable {
     private static final long serialVersionUID = 1L;
