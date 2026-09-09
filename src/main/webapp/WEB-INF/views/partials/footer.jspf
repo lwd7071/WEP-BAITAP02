@@ -1,7 +1,8 @@
+<%@ page pageEncoding="UTF-8" %>
 <footer class="site-footer">
     <div class="footer-inner">
         <div class="footer-col brand-col">
-            <a class="brand" href="${pageContext.request.contextPath}/waiting">
+            <a class="brand" href="${pageContext.request.contextPath}/home">
                 <span class="brand-mark">J</span>
                 <span class="brand-name">JPA Store</span>
             </a>
@@ -57,7 +58,7 @@
         </div>
     </div>
     <div class="footer-bottom">
-        <p>© 2026 JPA Store. Đã đăng ký bản quyền. Hệ thống xây dựng trên nền tảng Servlet & JPA.</p>
+        <p>© 2026 JPA Store. Đã đăng ký bản quyền. Hệ thống xây dựng trên Spring Boot & JPA.</p>
         <div class="footer-bottom-links">
             <a href="#privacy">Bảo mật</a>
             <a href="#terms">Điều khoản</a>

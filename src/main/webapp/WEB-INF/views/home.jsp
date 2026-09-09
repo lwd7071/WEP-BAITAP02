@@ -6,8 +6,10 @@
 <html lang="vi" class="notranslate">
 <head>
     <title>JPA Store | Cửa hàng mua sắm trực tuyến cao cấp</title>
+    <%@ include file="partials/head.jspf" %>
 </head>
 <body>
+<%@ include file="partials/topbar.jspf" %>
 <main class="page-shell">
     <!-- 1. Hero Banner chuẩn E-commerce -->
     <section class="hero-ecommerce">
@@ -19,9 +21,9 @@
             <h1>Khám Phá Đẳng Cấp & Phong Cách Đỉnh Cao</h1>
             <p>Trải nghiệm mua sắm tiện lợi với hàng ngàn sản phẩm chọn lọc, chính sách bảo hành 12 tháng chính hãng và giao hàng hỏa tốc trong ngày.</p>
             <div class="hero-cta-group">
-                <a class="button primary" href="${pageContext.request.contextPath}/product">Khám phá ngay</a>
-                <c:if test="${not empty sessionScope.account}">
-                    <a class="button secondary" href="${pageContext.request.contextPath}/categories">Danh mục của tôi</a>
+                <a class="button primary" href="${pageContext.request.contextPath}/products">Khám phá ngay</a>
+                <c:if test="${pageContext.request.isUserInRole('ADMIN')}">
+                    <a class="button secondary" href="${pageContext.request.contextPath}/admin/categories">Quản lý danh mục</a>
                 </c:if>
             </div>
         </div>
@@ -89,7 +91,7 @@
             <div class="eyebrow" id="section-eyebrow">BỘ SƯU TẬP</div>
             <h2 id="section-title">Tất cả sản phẩm</h2>
         </div>
-        <a id="view-all-link" class="button secondary inline" href="${pageContext.request.contextPath}/product">Xem tất cả →</a>
+        <a id="view-all-link" class="button secondary inline" href="${pageContext.request.contextPath}/products">Xem tất cả →</a>
     </section>
 
     <section class="product-grid" id="home-product-grid">
@@ -110,7 +112,7 @@
                 <button type="button" class="card-wishlist-btn" data-action="wishlist" title="Yêu thích">♡</button>
                 
                 <div class="product-thumb-wrap">
-                    <a href="${pageContext.request.contextPath}/product/detail?id=${product.productId}" style="display:block; width:100%; height:100%;">
+                            <a href="${pageContext.request.contextPath}/products/${product.productId}" style="display:block; width:100%; height:100%;">
                         <img src="${fn:escapeXml(productImage)}" alt="Ảnh ${fn:escapeXml(product.productName)}" loading="lazy">
                     </a>
                     <div class="product-overlay">
@@ -131,7 +133,7 @@
                     </div>
                     
                     <h3>
-                        <a href="${pageContext.request.contextPath}/product/detail?id=${product.productId}" style="color: inherit;">
+                                <a href="${pageContext.request.contextPath}/products/${product.productId}" style="color: inherit;">
                             <c:out value="${product.productName}"/>
                         </a>
                     </h3>
@@ -140,7 +142,7 @@
                         <span class="product-price">
                             <fmt:formatNumber value="${product.unitPrice}" type="number" maxFractionDigits="0"/> ₫
                         </span>
-                        <a class="button secondary inline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" href="${pageContext.request.contextPath}/product/detail?id=${product.productId}">
+                                <a class="button secondary inline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" href="${pageContext.request.contextPath}/products/${product.productId}">
                             Chi tiết
                         </a>
                     </div>
@@ -156,5 +158,8 @@
         </p>
     </section>
 </main>
+<%@ include file="partials/footer.jspf" %>
+<%@ include file="partials/cart-drawer.jspf" %>
+<script src="${pageContext.request.contextPath}/assets/app.js" defer></script>
 </body>
 </html>

@@ -5,8 +5,10 @@
 <html lang="vi">
 <head>
     <title>Thêm người dùng mới | Admin</title>
+    <%@ include file="../partials/head.jspf" %>
 </head>
 <body>
+<%@ include file="../partials/topbar.jspf" %>
 <main class="page-shell">
     <div class="page-heading">
         <div>
@@ -60,5 +62,8 @@
         </form>
     </section>
 </main>
+<%@ include file="../partials/footer.jspf" %>
+<%@ include file="../partials/cart-drawer.jspf" %>
+<script src="${pageContext.request.contextPath}/assets/app.js" defer></script>
 </body>
 </html>

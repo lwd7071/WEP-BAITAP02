@@ -6,8 +6,10 @@
 <html lang="vi" class="notranslate">
 <head>
     <title><c:out value="${product.productName}"/> | JPA Store</title>
+    <%@ include file="partials/head.jspf" %>
 </head>
 <body>
+<%@ include file="partials/topbar.jspf" %>
 <main class="page-shell">
     <!-- Breadcrumb điều hướng -->
     <nav class="breadcrumb">
@@ -116,5 +118,8 @@
         </div>
     </article>
 </main>
+<%@ include file="partials/footer.jspf" %>
+<%@ include file="partials/cart-drawer.jspf" %>
+<script src="${pageContext.request.contextPath}/assets/app.js" defer></script>
 </body>
 </html>

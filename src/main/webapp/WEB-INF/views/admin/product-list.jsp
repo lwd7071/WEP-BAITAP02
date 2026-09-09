@@ -6,8 +6,10 @@
 <html lang="vi">
 <head>
     <title>Quản lý sản phẩm | Admin</title>
+    <%@ include file="../partials/head.jspf" %>
 </head>
 <body>
+<%@ include file="../partials/topbar.jspf" %>
 <main class="page-shell">
     <div class="page-heading">
         <div>
@@ -109,5 +111,8 @@
         </nav>
     </c:if>
 </main>
+<%@ include file="../partials/footer.jspf" %>
+<%@ include file="../partials/cart-drawer.jspf" %>
+<script src="${pageContext.request.contextPath}/assets/app.js" defer></script>
 </body>
 </html>

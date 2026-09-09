@@ -1,18 +1,18 @@
 :root {
-    --ink: #15231b;
-    --muted: #627066;
-    --paper: #f6f7f2;
+    --ink: #202124;
+    --muted: #686d76;
+    --paper: #fafafa;
     --card: #ffffff;
-    --line: #e2e6dd;
-    --green: #245e38;
-    --green-dark: #194428;
-    --green-light: #eaf3ea;
-    --lime: #d8e8c8;
+    --line: #e5e7eb;
+    --green: #272b33;
+    --green-dark: #15181e;
+    --green-light: #f0f1f3;
+    --lime: #e5e7eb;
     --danger: #b9382b;
     --accent: #d97706;
-    --shadow-sm: 0 4px 12px rgba(25, 50, 31, 0.05);
-    --shadow: 0 12px 32px rgba(25, 50, 31, 0.08);
-    --shadow-deep: 0 24px 54px rgba(25, 50, 31, 0.14);
+    --shadow-sm: 0 4px 12px rgba(24, 28, 36, 0.05);
+    --shadow: 0 12px 32px rgba(24, 28, 36, 0.08);
+    --shadow-deep: 0 24px 54px rgba(24, 28, 36, 0.14);
     --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
     --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
     --radius-sm: 10px;
@@ -78,8 +78,8 @@ h1, h2, h3, h4, p { margin-top: 0; }
 
 /* 6. Ripple / Glow xung quanh icon */
 @keyframes pulse-icon {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(36, 94, 56, 0.25); }
-    50% { box-shadow: 0 0 0 16px rgba(36, 94, 56, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(39, 43, 51, 0.25); }
+    50% { box-shadow: 0 0 0 16px rgba(39, 43, 51, 0); }
 }
 
 /* 7. Cart Badge Bounce */
@@ -120,12 +120,12 @@ h1, h2, h3, h4, p { margin-top: 0; }
 }
 .button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(36, 94, 56, 0.18);
+    box-shadow: 0 6px 16px rgba(39, 43, 51, 0.18);
     text-decoration: none;
 }
 .button:active {
     transform: scale(0.97) translateY(0);
-    box-shadow: 0 2px 6px rgba(36, 94, 56, 0.12);
+    box-shadow: 0 2px 6px rgba(39, 43, 51, 0.12);
 }
 .button.primary {
     background: var(--green);
@@ -140,7 +140,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
     color: var(--green-dark);
 }
 .button.secondary:hover {
-    background: #dbe9da;
+    background: #e5e7eb;
 }
 .button.outline {
     background: transparent;
@@ -180,7 +180,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border-bottom: 1px solid rgba(217, 221, 211, 0.8);
+    border-bottom: 1px solid rgba(229, 231, 235, 0.8);
     box-shadow: 0 4px 20px rgba(0,0,0,0.02);
 }
 
@@ -203,7 +203,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
     background: var(--green);
     color: white;
     font-weight: 800;
-    box-shadow: 0 4px 10px rgba(36, 94, 56, 0.3);
+    box-shadow: 0 4px 10px rgba(39, 43, 51, 0.3);
 }
 
 /* Search bar trung tâm */
@@ -221,7 +221,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
     width: 100%;
     height: 42px;
     padding: 0 2.8rem 0 1.2rem;
-    background: #f1f3ed;
+    background: #f3f4f6;
     border: 1.5px solid transparent;
     border-radius: 999px;
     font-size: 0.9rem;
@@ -232,7 +232,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
 .header-search input:focus {
     background: #ffffff;
     border-color: var(--green);
-    box-shadow: 0 0 0 4px rgba(36, 94, 56, 0.12);
+    box-shadow: 0 0 0 4px rgba(39, 43, 51, 0.12);
 }
 .search-submit {
     position: absolute;
@@ -347,7 +347,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
     display: inline-flex;
     align-items: center;
     gap: 0.55rem;
-    background: #eef2ea;
+    background: #f3f4f6;
     border-radius: 999px;
     padding: 0.3rem 0.85rem 0.3rem 0.35rem;
     color: var(--ink);
@@ -356,7 +356,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
     transition: all 0.2s var(--ease-smooth);
 }
 .user-chip:hover {
-    background: #e1e8dc;
+    background: #e5e7eb;
     text-decoration: none;
     transform: translateY(-1px);
 }
@@ -378,7 +378,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
 .drawer-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 18, 0.5);
+    background: rgba(24, 28, 36, 0.5);
     backdrop-filter: blur(4px);
     opacity: 0;
     visibility: hidden;
@@ -438,7 +438,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
 .drawer-footer {
     padding: 1.4rem;
     border-top: 1px solid var(--line);
-    background: #fafbf9;
+    background: #fafafa;
 }
 .drawer-total {
     display: flex;
@@ -467,7 +467,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
     gap: 0.75rem;
     padding: 0.9rem 1.4rem;
     border-radius: var(--radius-sm);
-    background: #1e2922;
+    background: #272b33;
     color: #ffffff;
     font-size: 0.9rem;
     font-weight: 600;
@@ -528,8 +528,8 @@ h1, h2, h3, h4, p { margin-top: 0; }
    ========================================= */
 .auth-page {
     min-height: 100vh;
-    background: radial-gradient(circle at 10% 10%, #dceaca, transparent 40%),
-                linear-gradient(135deg, #eef2e7, #f8f5ee 55%, #e7eee1);
+    background: radial-gradient(circle at 10% 10%, #ffffff, transparent 40%),
+                linear-gradient(135deg, #f7f8fa, #ffffff 55%, #f1f2f5);
 }
 .auth-shell.centered {
     display: flex;
@@ -540,7 +540,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
 }
 .auth-card {
     background: var(--card);
-    border: 1px solid rgba(75, 94, 72, 0.18);
+    border: 1px solid rgba(107, 114, 128, 0.18);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-deep);
     padding: clamp(1.8rem, 4vw, 3rem);
@@ -566,6 +566,15 @@ h1, h2, h3, h4, p { margin-top: 0; }
 }
 
 .form-stack { display: grid; gap: 1.1rem; }
+.register-card { max-width: 680px; }
+.register-card h1 { margin: 0; font-size: 1.8rem; }
+.registration-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; }
+.register-full { grid-column: 1 / -1; }
+.field-error { color: #991b1b; font-size: 0.8rem; }
+@media (max-width: 600px) {
+    .registration-form { grid-template-columns: minmax(0, 1fr); }
+    .register-card { padding: 1.5rem; }
+}
 label {
     display: grid;
     gap: 0.45rem;
@@ -574,8 +583,8 @@ label {
 }
 input, select, textarea {
     width: 100%;
-    border: 1.5px solid #cbd2c6;
-    background: #fbfcf8;
+    border: 1.5px solid #d1d5db;
+    background: #ffffff;
     border-radius: 12px;
     padding: 0.8rem 1rem;
     color: var(--ink);
@@ -586,10 +595,10 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
     border-color: var(--green);
     background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(36, 94, 56, 0.12);
+    box-shadow: 0 0 0 3px rgba(39, 43, 51, 0.12);
 }
 .input-readonly {
-    background: #edf1e7;
+    background: #f3f4f6;
     color: var(--muted);
     cursor: not-allowed;
 }
@@ -678,7 +687,7 @@ input:focus, select:focus, textarea:focus {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: #edf1e7;
+    background: #f3f4f6;
     color: var(--ink);
     display: grid;
     place-items: center;
@@ -714,7 +723,7 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: 1.5rem;
 }
 .pay-tag {
-    background: #f3f5ee;
+    background: #f7f8fa;
     padding: 0.4rem 0.75rem;
     border-radius: 8px;
     font-size: 0.78rem;
@@ -788,8 +797,8 @@ table {
     border-collapse: collapse;
 }
 th {
-    background: #edf1e7;
-    color: #3b503d;
+    background: #f3f4f6;
+    color: #4b5563;
     text-align: left;
     font-size: 0.75rem;
     font-weight: 800;
@@ -814,7 +823,7 @@ td small {
     height: 60px;
     object-fit: cover;
     border-radius: 10px;
-    background: #edf1e7;
+    background: #f3f4f6;
 }
 .status {
     display: inline-block;
@@ -894,7 +903,7 @@ legend {
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: #f1f4ec;
+    background: #f5f6f8;
     padding: 0.9rem;
     border-radius: 14px;
 }
@@ -930,8 +939,8 @@ label small {
     height: 90px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #cbdcc0;
-    background: #edf1e7;
+    border: 3px solid #e5e7eb;
+    background: #f3f4f6;
 }
 .profile-summary h2 {
     margin: 0 0 0.3rem;
@@ -945,7 +954,7 @@ label small {
     gap: 1.2rem;
 }
 .avatar-inputs {
-    background: #fbfcf8;
+    background: #ffffff;
     border: 1.5px dashed var(--line);
     border-radius: 16px;
     padding: 1.2rem;
@@ -968,7 +977,7 @@ label small {
     box-shadow: var(--shadow-sm);
 }
 .info-grid article span {
-    color: #7b946f;
+    color: #6b7280;
     font: 800 1.8rem "Be Vietnam Pro", sans-serif;
 }
 .info-grid h3 { margin: 0.8rem 0 0.3rem; font-size: 1.15rem; }
@@ -997,10 +1006,9 @@ label small {
 .search-bar input { max-width: 420px; }
 
 .role-badge {
-    border: 1px solid #9fb293;
+    border: 1px solid #9ca3af;
     border-radius: 999px;
     padding: 0.45rem 0.9rem;
     font-size: 0.78rem;
     font-weight: 700;
 }
-

@@ -6,8 +6,10 @@
 <html lang="vi">
 <head>
     <title>Danh mục sản phẩm | Cửa hàng</title>
+    <%@ include file="partials/head.jspf" %>
 </head>
 <body>
+<%@ include file="partials/topbar.jspf" %>
 <main class="page-shell">
     <div class="page-heading">
         <div>
@@ -34,7 +36,7 @@
         </c:if>
     </form>
 
-    <div class="catalog-layout">
+    <div class="catalog-layout full-width">
         <section class="catalog-main" style="width: 100%;">
             <c:set var="productList" value="${products.content != null ? products.content : products}"/>
             <div class="product-grid">
@@ -105,5 +107,8 @@
         </section>
     </div>
 </main>
+<%@ include file="partials/footer.jspf" %>
+<%@ include file="partials/cart-drawer.jspf" %>
+<script src="${pageContext.request.contextPath}/assets/app.js" defer></script>
 </body>
 </html>

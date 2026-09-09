@@ -23,6 +23,7 @@
         </c:if>
 
         <form action="${pageContext.request.contextPath}/forgot-password" method="post" class="form-stack">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
             <label>Địa chỉ Email
                 <input type="email" name="email" required autofocus
                        value="${fn:escapeXml(email)}" placeholder="name@example.com">

@@ -31,6 +31,7 @@
             </div>
         </c:if>
         <form action="${pageContext.request.contextPath}/login" method="post" class="form-stack">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
             <label>Tài khoản
                 <input name="username" autocomplete="username" required
                        value="${fn:escapeXml(rememberedUsername)}" placeholder="Nhập tên tài khoản">

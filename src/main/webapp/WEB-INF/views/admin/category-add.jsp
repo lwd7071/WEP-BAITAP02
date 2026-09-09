@@ -3,13 +3,18 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!doctype html>
 <html lang="vi">
-<head><title>Thêm danh mục | JPA Category</title></head>
+<head>
+    <title>Thêm danh mục | JPA Category</title>
+    <%@ include file="../partials/head.jspf" %>
+</head>
 <body>
+<%@ include file="../partials/topbar.jspf" %>
 <main class="page-shell narrow">
-    <a class="back-link" href="${pageContext.request.contextPath}/categories">← Quay lại danh mục của tôi</a>
+    <a class="back-link" href="${pageContext.request.contextPath}/admin/categories">← Quay lại danh mục</a>
     <div class="page-heading"><div><div class="eyebrow">CATEGORY · CREATE</div><h1>Thêm danh mục</h1><p>Ảnh có thể là URL công khai hoặc file tải lên.</p></div></div>
     <c:if test="${not empty error}"><div class="alert error"><c:out value="${error}"/></div></c:if>
-    <form class="editor-card form-stack" method="post" enctype="multipart/form-data" action="${pageContext.request.contextPath}/category/insert">
+    <form class="editor-card form-stack" method="post" action="${pageContext.request.contextPath}/admin/categories">
+        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
         <label>Tên danh mục <input name="categoryName" maxlength="255" required value="${fn:escapeXml(categoryName)}" placeholder="Ví dụ: Điện thoại"></label>
         <label>Link ảnh <input type="url" name="images" maxlength="500" value="${fn:escapeXml(images)}" placeholder="https://example.com/image.jpg"></label>
         <div class="separator"><span>hoặc</span></div>
@@ -18,5 +23,8 @@
         <button class="button primary" type="submit">Lưu danh mục</button>
     </form>
 </main>
+<%@ include file="../partials/footer.jspf" %>
+<%@ include file="../partials/cart-drawer.jspf" %>
+<script src="${pageContext.request.contextPath}/assets/app.js" defer></script>
 </body>
 </html>

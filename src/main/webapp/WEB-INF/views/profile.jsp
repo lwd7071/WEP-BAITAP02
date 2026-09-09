@@ -6,8 +6,10 @@
 
     <head>
         <title>Hồ sơ cá nhân | JPA Category</title>
+        <%@ include file="partials/head.jspf" %>
     </head>
     <body>
+        <%@ include file="partials/topbar.jspf" %>
         <main class="page-shell narrow">
                         <div class="page-heading">
                             <div>
@@ -63,6 +65,7 @@
 
                             <form class="editor-card form-stack" method="post" enctype="multipart/form-data"
                                 action="${pageContext.request.contextPath}/profile">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
                                 <div class="field-grid">
                                     <label>Tên đăng nhập
                                         <input type="text" value="${fn:escapeXml(user.username)}" readonly
@@ -106,6 +109,9 @@
                             </form>
                         </div>
                     </main>
+                    <%@ include file="partials/footer.jspf" %>
+                    <%@ include file="partials/cart-drawer.jspf" %>
+                    <script src="${pageContext.request.contextPath}/assets/app.js" defer></script>
             </body>
 
             </html>
