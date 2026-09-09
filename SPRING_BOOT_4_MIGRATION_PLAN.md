@@ -1292,8 +1292,8 @@ docs: document Spring Boot setup migrations and environment variables
 | **5** | Xác thực Local & Chu trình OTP | [x] | [x] | [x] | Hoàn thành |
 | **6** | Google OAuth2 & Chống cướp quyền | [x] | [x] | [x] | Hoàn thành |
 | **7** | Quản trị Danh mục (Category CRUD & Search) | [x] | [x] | [x] | Hoàn thành |
-| **8** | Quản trị Người dùng (Admin User Management) | [ ] | [ ] | [ ] | Chưa bắt đầu |
-| **9** | Quản lý Sản phẩm (Product Admin / Public) | [ ] | [ ] | [ ] | Chưa bắt đầu |
-| **10**| Password Migration Runner (BCrypt flag) | [ ] | [ ] | [ ] | Chưa bắt đầu |
-| **11**| Dọn dẹp Legacy Code & Static Check | [ ] | [ ] | [ ] | Chưa bắt đầu |
-| **12**| Acceptance Testing End-to-End | [ ] | [ ] | [ ] | Chưa bắt đầu |
+| **8** | Quản trị Người dùng (Admin User Management) | [x] | [x] | [x] | Hoàn thành |
+| **9** | Quản lý Sản phẩm (Product Admin / Public) | [x] | [x] | [x] | Hoàn thành |
+| **10**| Password Migration Runner (BCrypt flag) | [x] | [x] | [x] | Hoàn thành |
+| **11**| Dọn dẹp Legacy Code & Static Check | [x] | [x] | [x] | Hoàn thành |
+| **12**| Acceptance Testing End-to-End | [x] | [x] | [x] | Hoàn thành |

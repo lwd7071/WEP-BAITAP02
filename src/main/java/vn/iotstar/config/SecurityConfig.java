@@ -2,6 +2,7 @@ package vn.iotstar.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -49,10 +50,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
+                .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
                 .requestMatchers(
                     "/", "/home", "/login", "/register", "/verify-otp/**",
                     "/forgot-password/**", "/reset-password/**",
-                    "/static/**", "/css/**", "/js/**", "/images/**", "/uploads/**",
+                    "/assets/**", "/static/**", "/css/**", "/js/**", "/images/**", "/uploads/**",
                     "/oauth2/**", "/error"
                 ).permitAll()
                 .requestMatchers("/admin/**", "/api/users/**").hasRole("ADMIN")
@@ -116,7 +118,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint() {
         return (request, response, authException) -> {
-            String uri = request.getRequestURI();
+            String uri = request.getServletPath();
             String accept = request.getHeader("Accept");
             boolean isApi = uri.startsWith("/api/") || (accept != null && accept.contains(MediaType.APPLICATION_JSON_VALUE));
 
@@ -134,7 +136,7 @@ public class SecurityConfig {
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
         return (request, response, accessDeniedException) -> {
-            String uri = request.getRequestURI();
+            String uri = request.getServletPath();
             String accept = request.getHeader("Accept");
             boolean isApi = uri.startsWith("/api/") || (accept != null && accept.contains(MediaType.APPLICATION_JSON_VALUE));
 

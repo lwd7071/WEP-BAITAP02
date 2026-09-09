@@ -2,6 +2,7 @@ package vn.iotstar.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -20,12 +21,14 @@ public interface ProductRepository extends JpaRepository<Product, Integer>, JpaS
            "AND (:categoryId IS NULL OR c.categoryId = :categoryId) " +
            "AND (:keyword IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "     OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    @EntityGraph(attributePaths = "category")
     Page<Product> findPublicProducts(@Param("keyword") String keyword,
                                      @Param("categoryId") Integer categoryId,
                                      Pageable pageable);
 
     @Query("SELECT p FROM Product p JOIN p.category c " +
            "WHERE p.productId = :id AND p.status = 1 AND c.status = 1 AND c.owner.role = vn.iotstar.entity.Role.ADMIN")
+    @EntityGraph(attributePaths = "category")
     Optional<Product> findPublicById(@Param("id") Integer id);
 
     @Query("SELECT p FROM Product p JOIN p.category c " +
@@ -34,6 +37,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer>, JpaS
            "AND (:status IS NULL OR p.status = :status) " +
            "AND (:keyword IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "     OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    @EntityGraph(attributePaths = "category")
     Page<Product> findAdminProducts(@Param("keyword") String keyword,
                                     @Param("categoryId") Integer categoryId,
                                     @Param("status") Integer status,
@@ -42,7 +46,11 @@ public interface ProductRepository extends JpaRepository<Product, Integer>, JpaS
     long countByCategory_CategoryId(Integer categoryId);
 
     @Query("SELECT p FROM Product p JOIN p.category c " +
-           "WHERE p.status = 1 AND c.status = 1 AND c.owner.role = vn.iotstar.entity.Role.ADMIN " +
-           "ORDER BY p.createdDate DESC, p.productId DESC")
+           "WHERE p.status = 1 AND c.status = 1 AND c.owner.role = vn.iotstar.entity.Role.ADMIN")
+    @EntityGraph(attributePaths = "category")
     List<Product> findLatestPublic(Pageable pageable);
+
+    @Override
+    @EntityGraph(attributePaths = "category")
+    Optional<Product> findById(Integer id);
 }

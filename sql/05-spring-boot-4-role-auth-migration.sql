@@ -30,6 +30,9 @@ IF COL_LENGTH(N'dbo.users', N'otp_purpose') IS NULL
 
 IF COL_LENGTH(N'dbo.users', N'updated_date') IS NULL
     ALTER TABLE dbo.users ADD updated_date DATETIME2 NULL;
+
+IF COL_LENGTH(N'dbo.users', N'created_date') IS NULL
+    ALTER TABLE dbo.users ADD created_date DATETIME2 NULL;
 GO
 
 -- 2. Chuyển đổi cột status từ số sang chuỗi NVARCHAR(20)
@@ -40,6 +43,9 @@ IF EXISTS (
       AND system_type_id IN (TYPE_ID('int'), TYPE_ID('tinyint'), TYPE_ID('smallint'), TYPE_ID('bit'))
 )
 BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.users WHERE status NOT IN (0, 1) OR status IS NULL)
+        THROW 50021, N'Cột users.status chứa giá trị không hợp lệ hoặc NULL; migration đã dừng để xử lý thủ công.', 1;
+
     IF COL_LENGTH(N'dbo.users', N'status_new') IS NULL
         ALTER TABLE dbo.users ADD status_new NVARCHAR(20) NULL;
 
@@ -48,7 +54,6 @@ BEGIN
         SET status_new = CASE 
             WHEN status = 1 THEN N''ACTIVE''
             WHEN status = 0 THEN N''PENDING''
-            ELSE N''PENDING''
         END;
     ');
 
@@ -97,6 +102,14 @@ GO
 DECLARE @adminId INT = (SELECT TOP 1 id FROM dbo.users WHERE role = N'ADMIN' ORDER BY id);
 IF @adminId IS NOT NULL
 BEGIN
+    IF EXISTS (
+        SELECT category_name
+        FROM dbo.categories
+        GROUP BY category_name
+        HAVING COUNT(*) > 1
+    )
+        THROW 50022, N'Có category trùng tên giữa các owner; migration đã dừng để xử lý thủ công.', 1;
+
     UPDATE dbo.categories
     SET user_id = @adminId
     WHERE user_id <> @adminId;
@@ -112,6 +125,17 @@ BEGIN
     CREATE UNIQUE INDEX uk_users_single_admin
     ON dbo.users(role)
     WHERE role = 'ADMIN';
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'uk_users_google_provider_id' AND object_id = OBJECT_ID(N'dbo.users')
+)
+BEGIN
+    CREATE UNIQUE INDEX uk_users_google_provider_id
+    ON dbo.users(provider_id)
+    WHERE provider = 'GOOGLE' AND provider_id IS NOT NULL;
 END
 GO
 

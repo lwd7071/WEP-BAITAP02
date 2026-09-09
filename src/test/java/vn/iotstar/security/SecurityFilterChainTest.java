@@ -44,10 +44,37 @@ class SecurityFilterChainTest {
     }
 
     @Test
+    @DisplayName("Trang login public phải render được JSP mà không redirect vòng lặp")
+    void loginPage_ShouldRenderWithoutRedirectLoop() throws Exception {
+        mockMvc.perform(get("/login"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Tài nguyên giao diện phải public để trang đăng nhập tải được CSS và JavaScript")
+    void anonymousAccessAssets_ShouldBePublic() throws Exception {
+        mockMvc.perform(get("/assets/app.css"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/assets/app.js"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("Gọi API được bảo vệ khi chưa đăng nhập phải trả về 401 JSON kèm ApiResponse")
     void anonymousAccessProtectedApi_ShouldReturn401Json() throws Exception {
         mockMvc.perform(get("/api/categories")
                         .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
+    @DisplayName("API dưới context path vẫn phải trả 401 JSON thay vì redirect login")
+    void anonymousApiWithContextPath_ShouldReturn401Json() throws Exception {
+        mockMvc.perform(get("/WEP-BAITAP02/api/categories")
+                        .contextPath("/WEP-BAITAP02")
+                        .servletPath("/api/categories"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401));
     }
@@ -84,5 +111,13 @@ class SecurityFilterChainTest {
         mockMvc.perform(post("/logout").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("/login?logout")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("Logout bằng GET không được phép vì logout phải là POST có CSRF")
+    void getLogout_ShouldNotLogout() throws Exception {
+        mockMvc.perform(get("/logout"))
+                .andExpect(status().isNotFound());
     }
 }

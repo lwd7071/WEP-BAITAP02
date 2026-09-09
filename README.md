@@ -133,33 +133,39 @@ Yêu cầu SQL Server Express instance `SQLEXPRESS`, bật SQL Server Authentica
 sqlcmd -S ".\SQLEXPRESS" -U sa -P "YOUR_PASSWORD" -i sql\01-create-database.sql
 ```
 
-Nếu dùng port cố định, có thể đặt:
+Nếu dùng port cố định, đặt trong file `.env` ở thư mục gốc project:
 
 ```powershell
-$env:DB_URL = "jdbc:sqlserver://localhost:1433;databaseName=jakartaJPA;encrypt=true;trustServerCertificate=true"
+DB_URL=jdbc:sqlserver://localhost:1433;databaseName=jakartaJPA;encrypt=false;trustServerCertificate=true
 ```
 
-### 5.2. Biến môi trường
+### 5.2. File `.env`
 
-Đặt các biến môi trường cho đúng tiến trình chạy Tomcat:
+Copy `.env.example` thành `.env` rồi điền các giá trị local. Spring Boot tự đọc file `.env` khi khởi động. File `.env` đã nằm trong `.gitignore` và không được commit.
 
 ```powershell
-$env:DB_USER = "sa"
-$env:DB_PASSWORD = "YOUR_PASSWORD"
-$env:UPLOAD_DIR = "D:\BAITAP02\uploads"
+Copy-Item .env.example .env
 ```
 
-Không ghi mật khẩu thật vào source code, `persistence.xml` hoặc Git.
+Sau đó chạy:
+
+```powershell
+mvn spring-boot:run
+```
+
+Không cần set `$env:...` thủ công mỗi lần. Không ghi mật khẩu thật vào source code hoặc Git.
 
 ### 5.3. Cấu hình gửi OTP qua Gmail
 
 Ứng dụng gửi OTP bằng SMTP Gmail:
 
-```powershell
-$env:SMTP_HOST = "smtp.gmail.com"
-$env:SMTP_PORT = "587"
-$env:SMTP_USER = "your-sender@gmail.com"
-$env:SMTP_PASSWORD = "YOUR_GOOGLE_APP_PASSWORD"
+Sửa các key sau trong `.env`:
+
+```properties
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-sender@gmail.com
+SMTP_PASSWORD=YOUR_GOOGLE_APP_PASSWORD
 ```
 
 `SMTP_PASSWORD` phải là Google App Password, không phải mật khẩu Gmail thông thường. Tài khoản gửi cần bật xác minh hai bước và tạo App Password. Nếu thiếu cấu hình hoặc gửi thất bại, hệ thống báo lỗi để người dùng thử lại; mã OTP không được giả lập thành công trong log.

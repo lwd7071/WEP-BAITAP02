@@ -115,4 +115,18 @@ class ProductRepositoryTest {
         assertThat(publicProducts.getContent()).hasSize(1);
         assertThat(publicProducts.getContent().get(0).getProductName()).isEqualTo("iPhone 15 Pro");
     }
+
+    @Test
+    @DisplayName("Latest public products áp dụng sort từ Pageable mà không tạo ORDER BY trùng")
+    void latestPublic_ShouldUsePageableSortOnce() {
+        var pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdDate", "productId"));
+        entityManager.clear();
+
+        var latestProducts = productRepository.findLatestPublic(pageable);
+
+        assertThat(latestProducts).hasSize(1);
+        assertThat(latestProducts.get(0).getProductName()).isEqualTo("iPhone 15 Pro");
+        assertThat(entityManager.getEntityManagerFactory().getPersistenceUnitUtil()
+                .isLoaded(latestProducts.get(0), "category")).isTrue();
+    }
 }

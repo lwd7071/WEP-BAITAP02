@@ -10,7 +10,8 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import vn.iotstar.entity.AuthProvider;
 import vn.iotstar.entity.Role;
 import vn.iotstar.entity.User;
@@ -22,16 +23,18 @@ import java.util.Collections;
 import java.util.Map;
 
 @Service
-@Transactional
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private static final Logger log = LoggerFactory.getLogger(CustomOAuth2UserService.class);
 
     private final UserRepository userRepository;
+    private final TransactionTemplate transactionTemplate;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public CustomOAuth2UserService(UserRepository userRepository) {
+    public CustomOAuth2UserService(UserRepository userRepository,
+                                   PlatformTransactionManager transactionManager) {
         this.userRepository = userRepository;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @Override
@@ -48,6 +51,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     public User processOAuth2User(Map<String, Object> attributes) {
+        return transactionTemplate.execute(status -> processOAuth2UserInTransaction(attributes));
+    }
+
+    private User processOAuth2UserInTransaction(Map<String, Object> attributes) {
         String sub = (String) attributes.get("sub");
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
