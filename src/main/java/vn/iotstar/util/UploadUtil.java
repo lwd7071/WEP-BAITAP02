@@ -28,6 +28,33 @@ public final class UploadUtil {
         return directory;
     }
 
+    public static String saveImage(org.springframework.web.multipart.MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            return null;
+        }
+        if (file.getSize() > AppConstants.MAX_IMAGE_SIZE) {
+            throw new IllegalArgumentException("Ảnh không được vượt quá 5 MB");
+        }
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isBlank()) {
+            return null;
+        }
+        int dot = originalFilename.lastIndexOf('.');
+        if (dot < 1 || dot == originalFilename.length() - 1) {
+            throw new IllegalArgumentException("Tên ảnh không có phần mở rộng hợp lệ");
+        }
+        String extension = originalFilename.substring(dot + 1).toLowerCase(Locale.ROOT);
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException("Chỉ chấp nhận JPG, PNG, GIF hoặc WEBP");
+        }
+        String fileName = UUID.randomUUID() + "." + extension;
+        Path target = safeResolve(fileName);
+        try (var input = file.getInputStream()) {
+            Files.copy(input, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+        return fileName;
+    }
+
     public static String saveImage(Part part) throws IOException, ServletException {
         if (part == null || part.getSize() == 0) {
             return null;

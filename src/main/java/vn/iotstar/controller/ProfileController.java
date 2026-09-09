@@ -1,95 +1,84 @@
 package vn.iotstar.controller;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.MultipartConfig;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import vn.iotstar.dto.UserAdminUpdateForm;
 import vn.iotstar.entity.User;
-import vn.iotstar.service.IUserService;
-import vn.iotstar.service.impl.UserServiceImpl;
-import vn.iotstar.util.AuthUtil;
+import vn.iotstar.repository.UserRepository;
+import vn.iotstar.service.UserService;
+import vn.iotstar.util.UploadUtil;
 
 import java.io.IOException;
 
-@WebServlet("/profile")
-@MultipartConfig(
-        fileSizeThreshold = 1024 * 1024,
-        maxFileSize = 5 * 1024 * 1024,
-        maxRequestSize = 10 * 1024 * 1024
-)
-public class ProfileController extends HttpServlet {
-    private final IUserService userService;
+@Controller
+public class ProfileController {
 
-    public ProfileController() {
-        this(new UserServiceImpl());
-    }
+    private final UserRepository userRepository;
+    private final UserService userService;
 
-    public ProfileController(IUserService userService) {
+    public ProfileController(UserRepository userRepository, UserService userService) {
+        this.userRepository = userRepository;
         this.userService = userService;
     }
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User currentUser = AuthUtil.currentUser(request);
-        if (currentUser == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
-            return;
+    @GetMapping("/profile")
+    public String viewProfile(Authentication authentication, Model model) {
+        if (authentication == null) {
+            return "redirect:/login";
         }
+        User user = userRepository.findByUsernameIgnoreCase(authentication.getName())
+                .or(() -> userRepository.findByEmailIgnoreCase(authentication.getName()))
+                .orElse(null);
 
-        request.setAttribute("user", currentUser);
-        request.getRequestDispatcher("/WEB-INF/views/profile.jsp").forward(request, response);
+        model.addAttribute("user", user);
+        return "profile";
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User currentUser = AuthUtil.currentUser(request);
-        if (currentUser == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
-            return;
+    @PostMapping("/profile")
+    public String updateProfile(
+            Authentication authentication,
+            @RequestParam("fullName") String fullName,
+            @RequestParam(value = "phone", required = false) String phone,
+            @RequestParam(value = "avatarUrl", required = false) String avatarUrl,
+            @RequestParam(value = "avatarFile", required = false) MultipartFile avatarFile,
+            RedirectAttributes redirectAttributes) {
+
+        if (authentication == null) {
+            return "redirect:/login";
         }
 
-        String fullName = request.getParameter("fullName");
-        String phone = request.getParameter("phone");
-        String avatarUrl = request.getParameter("avatarUrl");
+        User user = userRepository.findByUsernameIgnoreCase(authentication.getName())
+                .or(() -> userRepository.findByEmailIgnoreCase(authentication.getName()))
+                .orElse(null);
 
-        String uploadedFileName = null;
+        if (user == null) {
+            return "redirect:/login";
+        }
+
         try {
-            jakarta.servlet.http.Part avatarPart = request.getPart("avatarFile");
-            uploadedFileName = vn.iotstar.util.UploadUtil.saveImage(avatarPart);
-
-            String avatar;
-            if (uploadedFileName != null) {
-                avatar = uploadedFileName;
-            } else if (avatarUrl != null && !avatarUrl.isBlank()) {
-                avatar = avatarUrl.trim();
-            } else {
-                avatar = currentUser.getAvatar();
+            String avatar = avatarUrl;
+            if (avatarFile != null && !avatarFile.isEmpty()) {
+                String saved = UploadUtil.saveImage(avatarFile); if (saved != null) avatar = saved;
             }
 
-            User updatedUser = userService.updateProfile(currentUser.getId(), fullName, phone, avatar);
-            // Đồng bộ lại session sau khi cập nhật thành công
-            request.getSession().setAttribute(vn.iotstar.util.AppConstants.SESSION_ACCOUNT, updatedUser);
+            UserAdminUpdateForm form = new UserAdminUpdateForm();
+            form.setFullName(fullName);
+            form.setEmail(user.getEmail());
+            form.setPhone(phone);
+            form.setAvatar(avatar);
 
-            // Dọn dẹp avatar local cũ nếu đã upload ảnh mới khác
-            if (uploadedFileName != null && currentUser.getAvatar() != null && !currentUser.getAvatar().equals(uploadedFileName)) {
-                vn.iotstar.util.UploadUtil.deleteLocal(currentUser.getAvatar());
-            }
-
-            request.setAttribute("successMessage", "Cập nhật hồ sơ thành công!");
-            request.setAttribute("user", updatedUser);
-            request.getRequestDispatcher("/WEB-INF/views/profile.jsp").forward(request, response);
-        } catch (Exception exception) {
-            // Rollback: Xóa file vừa upload nếu cập nhật thất bại
-            if (uploadedFileName != null) {
-                vn.iotstar.util.UploadUtil.deleteLocal(uploadedFileName);
-            }
-            request.setAttribute("errorMessage", exception.getMessage());
-            request.setAttribute("user", currentUser);
-            request.getRequestDispatcher("/WEB-INF/views/profile.jsp").forward(request, response);
+            userService.updateByAdmin(user.getId(), form);
+            redirectAttributes.addFlashAttribute("successMessage", "Cập nhật hồ sơ cá nhân thành công!");
+        } catch (IllegalArgumentException | IOException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         }
+
+        return "redirect:/profile";
     }
 }

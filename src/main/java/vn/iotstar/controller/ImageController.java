@@ -1,34 +1,43 @@
 package vn.iotstar.controller;
 
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
 import vn.iotstar.util.UploadUtil;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-@WebServlet(urlPatterns = "/image")
-public class ImageController extends HttpServlet {
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+@Controller
+public class ImageController {
+
+    @GetMapping("/image")
+    public ResponseEntity<Resource> serveImage(@RequestParam("fname") String fname) {
         try {
-            Path file = UploadUtil.safeResolve(request.getParameter("fname"));
+            Path file = UploadUtil.safeResolve(fname);
             if (!Files.isRegularFile(file)) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy file ảnh");
             }
+            Resource resource = new UrlResource(file.toUri());
             String contentType = Files.probeContentType(file);
-            response.setContentType(contentType == null ? "application/octet-stream" : contentType);
-            response.setHeader("X-Content-Type-Options", "nosniff");
-            response.setContentLengthLong(Files.size(file));
-            try (var input = Files.newInputStream(file)) {
-                input.transferTo(response.getOutputStream());
+            if (contentType == null) {
+                contentType = "application/octet-stream";
             }
-        } catch (IllegalArgumentException exception) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Tên file không hợp lệ");
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, contentType)
+                    .header("X-Content-Type-Options", "nosniff")
+                    .body(resource);
+        } catch (IllegalArgumentException | IOException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên file không hợp lệ");
         }
     }
 }
