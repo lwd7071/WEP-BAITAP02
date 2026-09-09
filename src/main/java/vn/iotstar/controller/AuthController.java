@@ -1,6 +1,9 @@
 package vn.iotstar.controller;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
+import org.springframework.validation.BindingResult;
+import vn.iotstar.service.EmailDeliveryException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,16 +53,22 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public String processRegister(@ModelAttribute("form") RegisterRequestDto form,
+    public String processRegister(@Valid @ModelAttribute("form") RegisterRequestDto form,
+                                  BindingResult bindingResult, Model model,
                                   RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            form.setPassword(null);
+            return "register";
+        }
         try {
             authService.register(form);
             redirectAttributes.addFlashAttribute("message", "Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP kích hoạt");
-            return "redirect:/verify-otp?email=" + form.getEmail();
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("error", ex.getMessage());
-            redirectAttributes.addFlashAttribute("form", form);
-            return "redirect:/register";
+            redirectAttributes.addAttribute("email", form.getEmail().trim());
+            return "redirect:/verify-otp";
+        } catch (IllegalArgumentException | EmailDeliveryException ex) {
+            form.setPassword(null);
+            model.addAttribute("error", ex.getMessage());
+            return "register";
         }
     }
 
@@ -91,12 +100,14 @@ public class AuthController {
     @PostMapping("/verify-otp/resend")
     public String resendOtp(@RequestParam("email") String email,
                             RedirectAttributes redirectAttributes) {
+        redirectAttributes.addAttribute("email", email);
         try {
             authService.resendActivationOtp(email);
-            return "redirect:/verify-otp?email=" + email + "&resent=true";
-        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("message", "Đã gửi lại mã OTP. Vui lòng kiểm tra email");
+            return "redirect:/verify-otp";
+        } catch (IllegalArgumentException | EmailDeliveryException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
-            return "redirect:/verify-otp?email=" + email;
+            return "redirect:/verify-otp";
         }
     }
 

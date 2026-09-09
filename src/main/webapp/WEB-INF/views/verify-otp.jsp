@@ -26,11 +26,15 @@
         <c:if test="${not empty success}">
             <div class="alert success"><c:out value="${success}"/></div>
         </c:if>
-        <c:if test="${not empty alert}">
-            <div class="alert error"><c:out value="${alert}"/></div>
+        <c:if test="${not empty message}">
+            <div class="alert success" role="status"><c:out value="${message}"/></div>
+        </c:if>
+        <c:if test="${not empty error}">
+            <div class="alert error" role="alert"><c:out value="${error}"/></div>
         </c:if>
 
         <form action="${pageContext.request.contextPath}/verify-otp" method="post" class="form-stack">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
             <input type="hidden" name="action" value="verify">
             <label>Email xác thực
                 <input type="email" name="email" required readonly
@@ -44,7 +48,8 @@
             <button class="button primary full" type="submit">Xác nhận kích hoạt</button>
         </form>
 
-        <form action="${pageContext.request.contextPath}/verify-otp" method="post" style="margin-top: 10px;">
+        <form action="${pageContext.request.contextPath}/verify-otp/resend" method="post" style="margin-top: 10px;">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
             <input type="hidden" name="action" value="resend">
             <input type="hidden" name="email" value="${fn:escapeXml(email)}">
             <button class="button secondary full" type="submit">Gửi lại mã OTP mới</button>

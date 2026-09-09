@@ -32,7 +32,20 @@ class AuthControllerTest {
     @Autowired
     private AuthService authService;
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private vn.iotstar.service.EmailService emailService;
+
     private MockMvc mockMvc;
+
+    @Test
+    void invalidRegistrationShowsFieldErrors() throws Exception {
+        mockMvc.perform(post("/register").with(csrf())
+                .param("username", "ab").param("fullName", "")
+                .param("email", "invalid").param("password", "1234"))
+                .andExpect(view().name("register"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model()
+                        .attributeHasFieldErrors("form", "username", "fullName", "email", "password"));
+    }
 
     @BeforeEach
     void setUp() {
@@ -69,7 +82,7 @@ class AuthControllerTest {
                         .param("password", "secret123")
                         .param("phone", "0934567890"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("/verify-otp?email=ctrl_reg@iotstar.vn")));
+                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("/verify-otp?email=ctrl_reg%40iotstar.vn")));
     }
 
     @Test

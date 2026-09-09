@@ -24,6 +24,9 @@ class AuthServiceTest {
     @Autowired
     private AuthService authService;
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private vn.iotstar.service.EmailService emailService;
+
     @Autowired
     private UserRepository userRepository;
 

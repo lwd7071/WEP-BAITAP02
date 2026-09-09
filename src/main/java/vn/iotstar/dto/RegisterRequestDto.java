@@ -15,12 +15,14 @@ public class RegisterRequestDto {
     private String email;
 
     @NotBlank(message = "Họ và tên không được để trống")
+    @Size(min = 2, max = 50, message = "Họ và tên từ 2–50 ký tự")
     private String fullName;
 
     @NotBlank(message = "Mật khẩu không được để trống")
     @Size(min = 6, message = "Mật khẩu tối thiểu 6 ký tự")
     private String password;
 
+    @jakarta.validation.constraints.Pattern(regexp = "^$|0[0-9]{9}", message = "Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0")
     private String phone;
 
     public RegisterRequestDto() {}
