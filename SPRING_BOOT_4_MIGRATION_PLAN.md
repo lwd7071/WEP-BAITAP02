@@ -1290,7 +1290,7 @@ docs: document Spring Boot setup migrations and environment variables
 | **3** | Entity & Repository (Search + Paging) | [x] | [x] | [x] | Hoàn thành |
 | **4** | Spring Security & Phân quyền URL | [x] | [x] | [x] | Hoàn thành |
 | **5** | Xác thực Local & Chu trình OTP | [x] | [x] | [x] | Hoàn thành |
-| **6** | Google OAuth2 & Chống cướp quyền | [ ] | [ ] | [ ] | Chưa bắt đầu |
+| **6** | Google OAuth2 & Chống cướp quyền | [x] | [x] | [x] | Hoàn thành |
 | **7** | Quản trị Danh mục (Category CRUD & Search) | [ ] | [ ] | [ ] | Chưa bắt đầu |
 | **8** | Quản trị Người dùng (Admin User Management) | [ ] | [ ] | [ ] | Chưa bắt đầu |
 | **9** | Quản lý Sản phẩm (Product Admin / Public) | [ ] | [ ] | [ ] | Chưa bắt đầu |

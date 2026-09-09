@@ -24,10 +24,13 @@ import vn.iotstar.security.CustomUserDetailsService;
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
+    private final vn.iotstar.security.CustomOAuth2UserService oAuth2UserService;
     private final ObjectMapper objectMapper;
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService) {
+    public SecurityConfig(CustomUserDetailsService userDetailsService,
+                          vn.iotstar.security.CustomOAuth2UserService oAuth2UserService) {
         this.userDetailsService = userDetailsService;
+        this.oAuth2UserService = oAuth2UserService;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
     }
@@ -68,6 +71,13 @@ public class SecurityConfig {
                 .successHandler(authenticationSuccessHandler())
                 .failureUrl("/login?error=true")
                 .permitAll()
+            )
+            .oauth2Login(oauth -> oauth
+                .loginPage("/login")
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(oAuth2UserService)
+                )
+                .defaultSuccessUrl("/home", false)
             )
             .logout(logout -> logout
                 .logoutUrl("/logout")
