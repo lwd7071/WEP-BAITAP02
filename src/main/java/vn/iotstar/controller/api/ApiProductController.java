@@ -1,221 +1,110 @@
 package vn.iotstar.controller.api;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.web.bind.annotation.*;
 import vn.iotstar.dto.ApiResponse;
 import vn.iotstar.dto.ProductDto;
 import vn.iotstar.entity.Product;
-import vn.iotstar.entity.User;
-import vn.iotstar.service.IProductService;
-import vn.iotstar.service.impl.ProductServiceImpl;
-import vn.iotstar.util.AuthUtil;
-import vn.iotstar.util.JsonUtil;
+import vn.iotstar.service.ProductService;
 
-import java.io.IOException;
 import java.util.List;
 
-@WebServlet(urlPatterns = {"/api/products", "/api/products/*"})
-public class ApiProductController extends HttpServlet {
-    private final IProductService productService;
+@RestController
+@RequestMapping("/api/products")
+public class ApiProductController {
 
-    public ApiProductController() {
-        this(new ProductServiceImpl());
-    }
+    private final ProductService productService;
 
-    public ApiProductController(IProductService productService) {
+    public ApiProductController(ProductService productService) {
         this.productService = productService;
     }
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = AuthUtil.currentUser(request);
-        if (user == null) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập"));
-            return;
+    @GetMapping
+    public ApiResponse<?> getProducts(
+            @RequestParam(value = "latest", required = false) Boolean latest,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            Authentication authentication) {
+
+        if (Boolean.TRUE.equals(latest)) {
+            List<Product> latestProducts = productService.getLatestPublic(10);
+            List<ProductDto> dtoList = latestProducts.stream().map(ProductDto::fromEntity).toList();
+            return ApiResponse.success(dtoList);
         }
 
-        String pathInfo = request.getPathInfo();
-        try {
-            // Trường hợp: GET /api/products/{id}
-            if (pathInfo != null && pathInfo.length() > 1) {
-                int id = Integer.parseInt(pathInfo.substring(1));
-                Product product = productService.findById(id, user.getId());
-                if (product == null) {
-                    JsonUtil.writeJson(response, HttpServletResponse.SC_NOT_FOUND,
-                            ApiResponse.error(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy sản phẩm với ID: " + id));
-                    return;
-                }
-                JsonUtil.writeJson(response, HttpServletResponse.SC_OK,
-                        ApiResponse.success(ProductDto.fromEntity(product)));
-                return;
-            }
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> a.equals("ROLE_ADMIN"));
 
-            // Trường hợp: GET /api/products
-            String latest = request.getParameter("latest");
-            List<Product> products;
-            if ("true".equalsIgnoreCase(latest)) {
-                products = productService.findLatestActive(user.getId(), 10);
-            } else {
-                int page = 0;
-                int size = 10;
-                try {
-                    if (request.getParameter("page") != null) {
-                        page = Math.max(0, Integer.parseInt(request.getParameter("page")));
-                    }
-                    if (request.getParameter("size") != null) {
-                        size = Math.max(1, Integer.parseInt(request.getParameter("size")));
-                    }
-                } catch (NumberFormatException ignored) {
-                }
-                products = productService.findAll(user.getId(), page, size);
-            }
+        var pageable = PageRequest.of(Math.max(0, page), Math.max(1, size), Sort.by(Sort.Direction.DESC, "createdDate", "productId"));
 
-            List<ProductDto> dtoList = products.stream().map(ProductDto::fromEntity).toList();
-            JsonUtil.writeJson(response, HttpServletResponse.SC_OK,
-                    ApiResponse.success("Lấy danh sách sản phẩm thành công", dtoList));
-        } catch (NumberFormatException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "ID sản phẩm không hợp lệ"));
-        } catch (Exception e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    ApiResponse.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi máy chủ: " + e.getMessage()));
+        Page<Product> productPage;
+        if (isAdmin) {
+            productPage = productService.searchAdmin(null, null, null, pageable);
+        } else {
+            productPage = productService.searchPublic(null, null, pageable);
         }
+
+        return ApiResponse.success(productPage.map(ProductDto::fromEntity));
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = AuthUtil.currentUser(request);
-        if (user == null) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập"));
-            return;
+    @GetMapping("/{id}")
+    public ApiResponse<ProductDto> getProductById(@PathVariable("id") int id, Authentication authentication) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> a.equals("ROLE_ADMIN"));
+
+        Product product;
+        if (isAdmin) {
+            product = productService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + id));
+        } else {
+            product = productService.findPublicById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + id));
         }
 
-        try {
-            ProductDto inputDto = JsonUtil.fromJson(request, ProductDto.class);
-            if (inputDto == null || inputDto.getProductName() == null || inputDto.getProductName().isBlank()) {
-                JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                        ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "Tên sản phẩm không được để trống"));
-                return;
-            }
-
-            Product product = new Product();
-            product.setProductName(inputDto.getProductName().trim());
-            product.setUnitPrice(inputDto.getUnitPrice());
-            product.setQuantity(inputDto.getQuantity());
-            product.setDescription(inputDto.getDescription());
-            product.setImages(inputDto.getImages());
-            product.setStatus(inputDto.getStatus());
-
-            productService.insert(product, inputDto.getCategoryId(), user.getId());
-
-            JsonUtil.writeJson(response, HttpServletResponse.SC_CREATED,
-                    ApiResponse.created("Tạo sản phẩm thành công", ProductDto.fromEntity(product)));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
-        } catch (Exception e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    ApiResponse.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tạo sản phẩm: " + e.getMessage()));
-        }
+        return ApiResponse.success(ProductDto.fromEntity(product));
     }
 
-    @Override
-    protected void doPut(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = AuthUtil.currentUser(request);
-        if (user == null) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập"));
-            return;
-        }
-
-        String pathInfo = request.getPathInfo();
-        if (pathInfo == null || pathInfo.length() <= 1) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "Thiếu ID sản phẩm"));
-            return;
-        }
-
-        try {
-            int id = Integer.parseInt(pathInfo.substring(1));
-            Product existing = productService.findById(id, user.getId());
-            if (existing == null) {
-                JsonUtil.writeJson(response, HttpServletResponse.SC_NOT_FOUND,
-                        ApiResponse.error(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy sản phẩm để cập nhật"));
-                return;
-            }
-
-            ProductDto inputDto = JsonUtil.fromJson(request, ProductDto.class);
-            if (inputDto == null || inputDto.getProductName() == null || inputDto.getProductName().isBlank()) {
-                JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                        ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "Tên sản phẩm không được để trống"));
-                return;
-            }
-
-            existing.setProductName(inputDto.getProductName().trim());
-            existing.setUnitPrice(inputDto.getUnitPrice());
-            existing.setQuantity(inputDto.getQuantity());
-            existing.setDescription(inputDto.getDescription());
-            if (inputDto.getImages() != null) {
-                existing.setImages(inputDto.getImages());
-            }
-            existing.setStatus(inputDto.getStatus());
-
-            int categoryId = inputDto.getCategoryId() > 0 ? inputDto.getCategoryId() : existing.getCategory().getCategoryId();
-            productService.update(existing, categoryId, user.getId());
-
-            JsonUtil.writeJson(response, HttpServletResponse.SC_OK,
-                    ApiResponse.success("Cập nhật sản phẩm thành công", ProductDto.fromEntity(existing)));
-        } catch (NumberFormatException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "ID sản phẩm không hợp lệ"));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
-        } catch (Exception e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    ApiResponse.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi cập nhật sản phẩm: " + e.getMessage()));
-        }
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<ProductDto>> createProduct(@Valid @RequestBody ProductDto dto) {
+        Product created = productService.create(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(ProductDto.fromEntity(created)));
     }
 
-    @Override
-    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = AuthUtil.currentUser(request);
-        if (user == null) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập"));
-            return;
-        }
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<ProductDto> updateProduct(@PathVariable("id") int id, @Valid @RequestBody ProductDto dto) {
+        Product updated = productService.update(id, dto);
+        return ApiResponse.success(ProductDto.fromEntity(updated));
+    }
 
-        String pathInfo = request.getPathInfo();
-        if (pathInfo == null || pathInfo.length() <= 1) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "Thiếu ID sản phẩm cần xóa"));
-            return;
-        }
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Void> deleteProduct(@PathVariable("id") int id) {
+        productService.delete(id);
+        return ApiResponse.success("Xóa sản phẩm thành công", null);
+    }
 
-        try {
-            int id = Integer.parseInt(pathInfo.substring(1));
-            productService.delete(id, user.getId());
-            JsonUtil.writeJson(response, HttpServletResponse.SC_OK,
-                    ApiResponse.success("Xóa sản phẩm thành công", null));
-        } catch (NumberFormatException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "ID sản phẩm không hợp lệ"));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
-        } catch (Exception e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    ApiResponse.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi xóa sản phẩm: " + e.getMessage()));
-        }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotFoundOrBadRequest(IllegalArgumentException ex) {
+        int code = ex.getMessage().contains("Không tìm thấy") ? HttpStatus.NOT_FOUND.value() : HttpStatus.BAD_REQUEST.value();
+        return ResponseEntity.status(code).body(ApiResponse.error(code, ex.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConflict(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
     }
 }

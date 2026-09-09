@@ -3,65 +3,42 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!doctype html>
-<html lang="vi" class="notranslate">
+<html lang="vi">
 <head>
-    <title>Danh mục sản phẩm | JPA Store</title>
+    <title>Danh mục sản phẩm | Cửa hàng</title>
 </head>
 <body>
 <main class="page-shell">
-    <!-- Breadcrumb -->
-    <nav class="breadcrumb">
-        <a href="${pageContext.request.contextPath}/waiting">Trang chủ</a>
-        <span>/</span>
-        <strong>Sản phẩm</strong>
-    </nav>
+    <div class="page-heading">
+        <div>
+            <div class="eyebrow">CỬA HÀNG</div>
+            <h1>Danh mục sản phẩm</h1>
+            <p>Khám phá các sản phẩm chất lượng cao trong hệ thống.</p>
+        </div>
+    </div>
+
+    <!-- Thanh tìm kiếm & lọc danh mục -->
+    <form class="search-bar" method="get" action="${pageContext.request.contextPath}/products">
+        <input name="q" value="${fn:escapeXml(q)}" placeholder="Tìm kiếm theo tên sản phẩm...">
+        <select name="categoryId">
+            <option value="">-- Tất cả danh mục --</option>
+            <c:forEach items="${categories}" var="cat">
+                <option value="${cat.categoryId}" ${categoryId == cat.categoryId ? 'selected' : ''}>
+                    <c:out value="${cat.categoryName}"/>
+                </option>
+            </c:forEach>
+        </select>
+        <button class="button secondary" type="submit">Tìm kiếm</button>
+        <c:if test="${not empty q or not empty categoryId}">
+            <a href="${pageContext.request.contextPath}/products">Xóa lọc</a>
+        </c:if>
+    </form>
 
     <div class="catalog-layout">
-        <!-- Sidebar bộ lọc (Cột trái) -->
-        <aside class="catalog-sidebar">
-            <div class="filter-group">
-                <h4>Khoảng Giá</h4>
-                <div class="filter-options">
-                    <label class="filter-option"><input type="radio" name="price" checked> Tất cả mức giá</label>
-                    <label class="filter-option"><input type="radio" name="price"> Dưới 200.000 ₫</label>
-                    <label class="filter-option"><input type="radio" name="price"> 200.000 ₫ - 500.000 ₫</label>
-                    <label class="filter-option"><input type="radio" name="price"> 500.000 ₫ - 1.000.000 ₫</label>
-                    <label class="filter-option"><input type="radio" name="price"> Trên 1.000.000 ₫</label>
-                </div>
-            </div>
-
-            <div class="filter-group">
-                <h4>Tình Trạng Kho</h4>
-                <div class="filter-options">
-                    <label class="filter-option"><input type="checkbox" checked> Còn hàng sẵn</label>
-                    <label class="filter-option"><input type="checkbox"> Đang có khuyến mãi</label>
-                </div>
-            </div>
-
-            <button class="button secondary full" type="button" onclick="window.showToast && window.showToast('Đã áp dụng bộ lọc sản phẩm!', 'info');">
-                Áp dụng bộ lọc
-            </button>
-        </aside>
-
-        <!-- Lưới sản phẩm & Toolbar (Cột phải) -->
-        <section class="catalog-main">
-            <div class="catalog-toolbar">
-                <div>
-                    Hiển thị <strong>${empty products ? 0 : fn:length(products)}</strong> sản phẩm chọn lọc
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span>Sắp xếp:</span>
-                    <select style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.85rem;" onchange="window.showToast && window.showToast('Đã sắp xếp lại danh sách!', 'info');">
-                        <option>Mới nhất</option>
-                        <option>Giá tăng dần</option>
-                        <option>Giá giảm dần</option>
-                        <option>Phổ biến nhất</option>
-                    </select>
-                </div>
-            </div>
-
+        <section class="catalog-main" style="width: 100%;">
+            <c:set var="productList" value="${products.content != null ? products.content : products}"/>
             <div class="product-grid">
-                <c:forEach items="${products}" var="product" varStatus="status">
+                <c:forEach items="${productList}" var="product" varStatus="status">
                     <c:choose>
                         <c:when test="${fn:startsWith(product.images, 'http://') or fn:startsWith(product.images, 'https://')}">
                             <c:set var="productImage" value="${product.images}"/>
@@ -75,19 +52,10 @@
                     </c:choose>
 
                     <article class="product-card" style="--card-idx: ${status.index}">
-                        <button type="button" class="card-wishlist-btn" data-action="wishlist" title="Yêu thích">♡</button>
-                        
                         <div class="product-thumb-wrap">
-                            <a href="${pageContext.request.contextPath}/product/detail?id=${product.productId}" style="display:block; width:100%; height:100%;">
+                            <a href="${pageContext.request.contextPath}/products/${product.productId}" style="display:block; width:100%; height:100%;">
                                 <img src="${fn:escapeXml(productImage)}" alt="Ảnh ${fn:escapeXml(product.productName)}" loading="lazy">
                             </a>
-                            <div class="product-overlay">
-                                <button type="button" class="button primary quick-action-btn" 
-                                        data-action="add-to-cart" 
-                                        data-product-name="${fn:escapeXml(product.productName)}">
-                                    + Thêm vào giỏ
-                                </button>
-                            </div>
                         </div>
 
                         <div class="product-card-body">
@@ -99,7 +67,7 @@
                             </div>
                             
                             <h3>
-                                <a href="${pageContext.request.contextPath}/product/detail?id=${product.productId}" style="color: inherit;">
+                                <a href="${pageContext.request.contextPath}/products/${product.productId}" style="color: inherit;">
                                     <c:out value="${product.productName}"/>
                                 </a>
                             </h3>
@@ -108,7 +76,7 @@
                                 <span class="product-price">
                                     <fmt:formatNumber value="${product.unitPrice}" type="number" maxFractionDigits="0"/> ₫
                                 </span>
-                                <a class="button secondary inline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" href="${pageContext.request.contextPath}/product/detail?id=${product.productId}">
+                                <a class="button secondary inline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" href="${pageContext.request.contextPath}/products/${product.productId}">
                                     Chi tiết
                                 </a>
                             </div>
@@ -116,18 +84,21 @@
                     </article>
                 </c:forEach>
 
-                <c:if test="${empty products}">
-                    <p class="empty-products">Không tìm thấy sản phẩm phù hợp.</p>
+                <c:if test="${empty productList}">
+                    <p class="empty-products">Không tìm thấy sản phẩm nào phù hợp.</p>
                 </c:if>
             </div>
 
             <!-- Phân trang -->
-            <c:if test="${totalPages > 1}">
+            <c:if test="${products.totalPages > 1}">
                 <nav class="pagination">
-                    <c:forEach begin="1" end="${totalPages}" var="number">
-                        <a class="${number == page ? 'current' : ''}" href="${pageContext.request.contextPath}/product?page=${number}">
-                            ${number}
-                        </a>
+                    <c:forEach begin="0" end="${products.totalPages - 1}" var="index">
+                        <c:url var="pageUrl" value="/products">
+                            <c:param name="page" value="${index}"/>
+                            <c:if test="${not empty q}"><c:param name="q" value="${q}"/></c:if>
+                            <c:if test="${not empty categoryId}"><c:param name="categoryId" value="${categoryId}"/></c:if>
+                        </c:url>
+                        <a class="${index == products.number ? 'current' : ''}" href="${pageUrl}">${index + 1}</a>
                     </c:forEach>
                 </nav>
             </c:if>

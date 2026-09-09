@@ -14,5 +14,6 @@ public interface CategoryService {
     void delete(Integer id);
     Optional<Category> findById(Integer id);
     Page<Category> searchAdmin(String keyword, Pageable pageable);
-    List<Category> findAllActiveAdmin();
+        List<Category> findAllActiveAdmin();
+    List<Category> findAllAdmin();
 }

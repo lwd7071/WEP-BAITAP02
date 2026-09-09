@@ -11,11 +11,11 @@
 <main class="page-shell">
     <!-- Breadcrumb điều hướng -->
     <nav class="breadcrumb">
-        <a href="${pageContext.request.contextPath}/waiting">Trang chủ</a>
+        <a href="${pageContext.request.contextPath}/">Trang chủ</a>
         <span>/</span>
-        <a href="${pageContext.request.contextPath}/product">Sản phẩm</a>
+        <a href="${pageContext.request.contextPath}/products">Sản phẩm</a>
         <span>/</span>
-        <a href="${pageContext.request.contextPath}/product"><c:out value="${product.category.categoryName}"/></a>
+        <a href="${pageContext.request.contextPath}/products"><c:out value="${product.category.categoryName}"/></a>
         <span>/</span>
         <strong><c:out value="${product.productName}"/></strong>
     </nav>

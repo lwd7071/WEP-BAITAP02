@@ -1,9 +1,79 @@
-<%@ page contentType="text/html;charset=UTF-8" %><%@ taglib prefix="c" uri="jakarta.tags.core" %><%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
-<!doctype html><html lang="vi"><head><title>Thêm sản phẩm</title></head><body><main class="page-shell narrow"><a class="back-link" href="${pageContext.request.contextPath}/products">← Quay lại quản lý sản phẩm</a><div class="page-heading"><div><div class="eyebrow">PRODUCT · CREATE</div><h1>Thêm sản phẩm</h1></div></div>
-<c:if test="${not empty error}"><div class="alert error"><c:out value="${error}"/></div></c:if><c:if test="${empty categories}"><div class="alert error">Bạn cần tạo ít nhất một danh mục trước khi thêm sản phẩm.</div><a class="button primary" href="${pageContext.request.contextPath}/category/add">Tạo danh mục</a></c:if>
-<c:if test="${not empty categories}"><form class="editor-card form-stack" method="post" enctype="multipart/form-data" action="${pageContext.request.contextPath}/product/insert">
-<label>Tên sản phẩm <input name="productName" maxlength="255" required value="${fn:escapeXml(productName)}"></label><div class="form-grid"><label>Giá bán <input type="number" name="unitPrice" min="0" step="0.01" required value="${fn:escapeXml(unitPrice)}"></label><label>Số lượng <input type="number" name="quantity" min="0" required value="${empty quantity ? 0 : fn:escapeXml(quantity)}"></label></div>
-<label>Danh mục <select name="categoryId" required><option value="">-- Chọn danh mục --</option><c:forEach items="${categories}" var="category"><option value="${category.categoryId}" ${selectedCategoryId == category.categoryId ? 'selected' : ''}><c:out value="${category.categoryName}"/></option></c:forEach></select></label><label>Mô tả <textarea name="description" rows="5"><c:out value="${description}"/></textarea></label>
-<label>Link ảnh <input type="url" name="images" maxlength="500" value="${fn:escapeXml(images)}" placeholder="https://..."></label><div class="separator"><span>hoặc</span></div><label>Tải ảnh lên <input type="file" name="imageFile" accept="image/png,image/jpeg,image/gif,image/webp"></label>
-<fieldset><legend>Trạng thái</legend><label class="radio"><input type="radio" name="status" value="1" ${empty status or status == 1 ? 'checked' : ''}> Hoạt động</label><label class="radio"><input type="radio" name="status" value="0" ${not empty status and status == 0 ? 'checked' : ''}> Khóa</label></fieldset><button class="button primary" type="submit">Lưu sản phẩm</button></form></c:if>
-</main></body></html>
+<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<!doctype html>
+<html lang="vi">
+<head>
+    <title>Thêm sản phẩm mới | Admin</title>
+</head>
+<body>
+<main class="page-shell">
+    <div class="page-heading">
+        <div>
+            <div class="eyebrow">QUẢN TRỊ VIÊN</div>
+            <h1>Thêm sản phẩm mới</h1>
+            <p>Nhập thông tin sản phẩm và gán vào danh mục phù hợp.</p>
+        </div>
+        <a class="button secondary inline" href="${pageContext.request.contextPath}/admin/products">Quay lại</a>
+    </div>
+
+    <c:if test="${not empty errorMessage}"><div class="alert error"><c:out value="${errorMessage}"/></div></c:if>
+
+    <section class="form-card">
+        <form method="post" action="${pageContext.request.contextPath}/admin/products">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+
+            <div class="form-group">
+                <label for="productName">Tên sản phẩm *</label>
+                <input id="productName" name="productName" value="${fn:escapeXml(productForm.productName)}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="categoryId">Danh mục *</label>
+                <select id="categoryId" name="categoryId" required>
+                    <option value="">-- Chọn danh mục --</option>
+                    <c:forEach items="${categories}" var="cat">
+                        <option value="${cat.categoryId}" ${productForm.categoryId == cat.categoryId ? 'selected' : ''}>
+                            <c:out value="${cat.categoryName}"/>
+                        </option>
+                    </c:forEach>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="unitPrice">Đơn giá (VNĐ) *</label>
+                <input id="unitPrice" type="number" step="1000" min="0" name="unitPrice" value="${productForm.unitPrice}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="quantity">Số lượng tồn kho *</label>
+                <input id="quantity" type="number" min="0" name="quantity" value="${productForm.quantity != null ? productForm.quantity : 0}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="images">Ảnh sản phẩm (URL hoặc tên file)</label>
+                <input id="images" name="images" value="${fn:escapeXml(productForm.images)}">
+            </div>
+
+            <div class="form-group">
+                <label for="status">Trạng thái kinh doanh</label>
+                <select id="status" name="status">
+                    <option value="1" ${productForm.status != 0 ? 'selected' : ''}>Hoạt động</option>
+                    <option value="0" ${productForm.status == 0 ? 'selected' : ''}>Khóa</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Mô tả sản phẩm</label>
+                <textarea id="description" name="description" rows="4"><c:out value="${productForm.description}"/></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="button primary">Lưu sản phẩm</button>
+                <a href="${pageContext.request.contextPath}/admin/products" class="button secondary">Hủy</a>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

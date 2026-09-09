@@ -135,6 +135,12 @@ public class CategoryServiceImpl implements CategoryService, ICategoryService {
         return categoryRepository.findByOwnerRoleAndStatusOrderByCategoryNameAsc(Role.ADMIN, 1);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<Category> findAllAdmin() {
+        return categoryRepository.findByOwnerRoleOrderByCategoryNameAsc(Role.ADMIN);
+    }
+
     // --- Phương thức ICategoryService legacy ---
 
     @Override

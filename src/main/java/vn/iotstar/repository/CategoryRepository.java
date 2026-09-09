@@ -26,5 +26,7 @@ public interface CategoryRepository extends JpaRepository<Category, Integer>, Jp
 
     Page<Category> findByOwnerRole(Role role, Pageable pageable);
 
-    List<Category> findByOwnerRoleAndStatusOrderByCategoryNameAsc(Role role, int status);
+        List<Category> findByOwnerRoleAndStatusOrderByCategoryNameAsc(Role role, int status);
+
+    List<Category> findByOwnerRoleOrderByCategoryNameAsc(Role role);
 }
