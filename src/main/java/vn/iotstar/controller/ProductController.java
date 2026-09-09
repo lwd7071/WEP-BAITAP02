@@ -190,7 +190,7 @@ public class ProductController extends HttpServlet {
 
     private User requireCurrentUser(HttpServletRequest request) {
         User user = AuthUtil.currentUser(request);
-        if (user == null || user.getStatus() != 1 || user.getId() <= 0)
+        if (user == null || !user.isActive() || user.getId() <= 0)
             throw new IllegalStateException("Vui lòng đăng nhập bằng tài khoản đã kích hoạt");
         return user;
     }

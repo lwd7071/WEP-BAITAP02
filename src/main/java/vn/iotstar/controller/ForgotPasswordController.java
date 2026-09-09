@@ -63,7 +63,7 @@ public class ForgotPasswordController extends HttpServlet {
             request.setAttribute("alert", exception.getMessage());
             request.setAttribute("rememberedUsername", username);
             User user = username == null ? null : userService.findByUsername(username.trim());
-            if (user != null && user.getStatus() == 0) request.setAttribute("unverifiedEmail", user.getEmail());
+            if (user != null && user.getStatus() == vn.iotstar.entity.UserStatus.PENDING) request.setAttribute("unverifiedEmail", user.getEmail());
             request.getRequestDispatcher("/WEB-INF/views/login.jsp").forward(request, response);
         }
     }

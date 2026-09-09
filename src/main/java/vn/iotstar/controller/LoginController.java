@@ -37,7 +37,7 @@ public class LoginController extends HttpServlet {
         String remembered = AuthUtil.cookieValue(request, AppConstants.COOKIE_REMEMBER);
         if (remembered != null) {
             User user = userService.findByUsername(remembered);
-            if (user != null && user.getStatus() == 1) {
+            if (user != null && user.isActive()) {
                 request.getSession(true).setAttribute(AppConstants.SESSION_ACCOUNT, user);
                 response.sendRedirect(request.getContextPath() + "/waiting");
                 return;

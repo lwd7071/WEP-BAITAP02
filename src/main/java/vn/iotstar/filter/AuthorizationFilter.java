@@ -36,10 +36,10 @@ public class AuthorizationFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) servletResponse;
         User user = AuthUtil.currentUser(request);
 
-        if (user == null || user.getStatus() != 1) {
+        if (user == null || !user.isActive()) {
             String remembered = AuthUtil.cookieValue(request, AppConstants.COOKIE_REMEMBER);
             user = userService.findByUsername(remembered);
-            if (user != null && user.getStatus() == 1) {
+            if (user != null && user.isActive()) {
                 request.getSession(true).setAttribute(AppConstants.SESSION_ACCOUNT, user);
             } else {
                 user = null;

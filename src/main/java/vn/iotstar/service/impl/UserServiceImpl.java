@@ -25,7 +25,7 @@ public class UserServiceImpl implements IUserService {
     public User login(String username, String password) {
         User user = findByUsername(username);
         if (user != null && password != null && password.equals(user.getPassword())) {
-            if (user.getStatus() == 0) {
+            if (!user.isActive()) {
                 throw new IllegalStateException("Tài khoản chưa được kích hoạt. Vui lòng xác thực OTP qua email.");
             }
             return user;
@@ -66,7 +66,7 @@ public class UserServiceImpl implements IUserService {
             return false;
         }
         User user = userDao.findByEmail(email.trim());
-        if (user == null || user.getStatus() == 1) {
+        if (user == null || user.isActive()) {
             return false;
         }
         if (user.getCode() == null || !user.getCode().equals(otp.trim())) {
@@ -85,7 +85,7 @@ public class UserServiceImpl implements IUserService {
             return false;
         }
         User user = userDao.findByEmail(email.trim());
-        if (user == null || user.getStatus() == 1) {
+        if (user == null || user.isActive()) {
             return false;
         }
         String otp = generateOtp();
@@ -109,7 +109,7 @@ public class UserServiceImpl implements IUserService {
         if (user == null) {
             throw new IllegalArgumentException("Không tìm thấy tài khoản với thông tin đã cung cấp");
         }
-        if (user.getStatus() == 0) {
+        if (!user.isActive()) {
             throw new IllegalArgumentException("Tài khoản chưa được kích hoạt. Vui lòng xác thực OTP qua email trước.");
         }
         issuePasswordResetOtp(user);
@@ -125,7 +125,7 @@ public class UserServiceImpl implements IUserService {
         if (user == null) {
             throw new IllegalArgumentException("Không tìm thấy tài khoản với tên đã nhập");
         }
-        if (user.getStatus() == 0) {
+        if (!user.isActive()) {
             throw new IllegalArgumentException("Tài khoản chưa được kích hoạt. Vui lòng xác thực OTP qua email trước.");
         }
         issuePasswordResetOtp(user);
@@ -172,7 +172,7 @@ public class UserServiceImpl implements IUserService {
             throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 4 ký tự");
         }
         User user = userDao.findById(userId);
-        if (user == null || user.getStatus() == 0) {
+        if (user == null || !user.isActive()) {
             throw new IllegalArgumentException("Tài khoản không hợp lệ để đặt lại mật khẩu");
         }
         if (user.getCode() == null || !user.getCode().equals(otp.trim())) {
