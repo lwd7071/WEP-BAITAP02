@@ -1291,7 +1291,7 @@ docs: document Spring Boot setup migrations and environment variables
 | **4** | Spring Security & Phân quyền URL | [x] | [x] | [x] | Hoàn thành |
 | **5** | Xác thực Local & Chu trình OTP | [x] | [x] | [x] | Hoàn thành |
 | **6** | Google OAuth2 & Chống cướp quyền | [x] | [x] | [x] | Hoàn thành |
-| **7** | Quản trị Danh mục (Category CRUD & Search) | [ ] | [ ] | [ ] | Chưa bắt đầu |
+| **7** | Quản trị Danh mục (Category CRUD & Search) | [x] | [x] | [x] | Hoàn thành |
 | **8** | Quản trị Người dùng (Admin User Management) | [ ] | [ ] | [ ] | Chưa bắt đầu |
 | **9** | Quản lý Sản phẩm (Product Admin / Public) | [ ] | [ ] | [ ] | Chưa bắt đầu |
 | **10**| Password Migration Runner (BCrypt flag) | [ ] | [ ] | [ ] | Chưa bắt đầu |

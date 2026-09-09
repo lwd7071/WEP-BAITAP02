@@ -1,214 +1,87 @@
 package vn.iotstar.controller.api;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import vn.iotstar.dto.ApiResponse;
 import vn.iotstar.dto.CategoryDto;
 import vn.iotstar.entity.Category;
-import vn.iotstar.entity.User;
-import vn.iotstar.service.ICategoryService;
-import vn.iotstar.service.impl.CategoryServiceImpl;
-import vn.iotstar.util.AuthUtil;
-import vn.iotstar.util.JsonUtil;
+import vn.iotstar.service.CategoryService;
 
-import java.io.IOException;
-import java.util.List;
+@RestController
+@RequestMapping("/api/categories")
+public class ApiCategoryController {
 
-@WebServlet(urlPatterns = {"/api/categories", "/api/categories/*"})
-public class ApiCategoryController extends HttpServlet {
-    private final ICategoryService categoryService;
+    private final CategoryService categoryService;
 
-    public ApiCategoryController() {
-        this(new CategoryServiceImpl());
-    }
-
-    public ApiCategoryController(ICategoryService categoryService) {
+    public ApiCategoryController(CategoryService categoryService) {
         this.categoryService = categoryService;
     }
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = AuthUtil.currentUser(request);
-        if (user == null) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập"));
-            return;
-        }
-
-        String pathInfo = request.getPathInfo();
-        try {
-            // Trường hợp: GET /api/categories/{id}
-            if (pathInfo != null && pathInfo.length() > 1) {
-                int id = Integer.parseInt(pathInfo.substring(1));
-                Category category = categoryService.findById(id, user.getId());
-                if (category == null) {
-                    JsonUtil.writeJson(response, HttpServletResponse.SC_NOT_FOUND,
-                            ApiResponse.error(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy danh mục với ID: " + id));
-                    return;
-                }
-                JsonUtil.writeJson(response, HttpServletResponse.SC_OK,
-                        ApiResponse.success(CategoryDto.fromEntity(category)));
-                return;
-            }
-
-            // Trường hợp: GET /api/categories (tìm kiếm & phân trang)
-            String keyword = request.getParameter("q");
-            List<Category> categories;
-            if (keyword != null && !keyword.isBlank()) {
-                categories = categoryService.searchByName(keyword.trim(), user.getId());
-            } else {
-                int page = 0;
-                int size = 10;
-                try {
-                    if (request.getParameter("page") != null) {
-                        page = Math.max(0, Integer.parseInt(request.getParameter("page")));
-                    }
-                    if (request.getParameter("size") != null) {
-                        size = Math.max(1, Integer.parseInt(request.getParameter("size")));
-                    }
-                } catch (NumberFormatException ignored) {
-                }
-                categories = categoryService.findAll(user.getId(), page, size);
-            }
-
-            List<CategoryDto> dtoList = categories.stream().map(CategoryDto::fromEntity).toList();
-            JsonUtil.writeJson(response, HttpServletResponse.SC_OK,
-                    ApiResponse.success("Lấy danh sách danh mục thành công", dtoList));
-        } catch (NumberFormatException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "ID danh mục không hợp lệ"));
-        } catch (Exception e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    ApiResponse.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi máy chủ: " + e.getMessage()));
-        }
+    @GetMapping
+    public ApiResponse<Page<CategoryDto>> getCategories(
+            @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+        var pageable = PageRequest.of(Math.max(0, page), Math.max(1, size), Sort.by(Sort.Direction.DESC, "categoryId"));
+        Page<Category> categoryPage = categoryService.searchAdmin(q, pageable);
+        Page<CategoryDto> dtoPage = categoryPage.map(CategoryDto::fromEntity);
+        return ApiResponse.success(dtoPage);
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = AuthUtil.currentUser(request);
-        if (user == null) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập"));
-            return;
-        }
-
-        try {
-            CategoryDto inputDto = JsonUtil.fromJson(request, CategoryDto.class);
-            if (inputDto == null || inputDto.getCategoryName() == null || inputDto.getCategoryName().isBlank()) {
-                JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                        ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "Tên danh mục không được để trống"));
-                return;
-            }
-
-            Category category = new Category();
-            category.setCategoryName(inputDto.getCategoryName().trim());
-            category.setImages(inputDto.getImages());
-            category.setStatus(inputDto.getStatus());
-
-            categoryService.insert(category, user.getId());
-
-            JsonUtil.writeJson(response, HttpServletResponse.SC_CREATED,
-                    ApiResponse.created("Tạo danh mục thành công", CategoryDto.fromEntity(category)));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
-        } catch (Exception e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    ApiResponse.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tạo danh mục: " + e.getMessage()));
-        }
+    @GetMapping("/{id}")
+    public ApiResponse<CategoryDto> getCategoryById(@PathVariable("id") Integer id) {
+        Category category = categoryService.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy danh mục với ID: " + id));
+        return ApiResponse.success(CategoryDto.fromEntity(category));
     }
 
-    @Override
-    protected void doPut(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = AuthUtil.currentUser(request);
-        if (user == null) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập"));
-            return;
-        }
-
-        String pathInfo = request.getPathInfo();
-        if (pathInfo == null || pathInfo.length() <= 1) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "Thiếu ID danh mục cần cập nhật"));
-            return;
-        }
-
-        try {
-            int id = Integer.parseInt(pathInfo.substring(1));
-            Category existing = categoryService.findById(id, user.getId());
-            if (existing == null) {
-                JsonUtil.writeJson(response, HttpServletResponse.SC_NOT_FOUND,
-                        ApiResponse.error(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy danh mục để cập nhật"));
-                return;
-            }
-
-            CategoryDto inputDto = JsonUtil.fromJson(request, CategoryDto.class);
-            if (inputDto == null || inputDto.getCategoryName() == null || inputDto.getCategoryName().isBlank()) {
-                JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                        ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "Tên danh mục không được để trống"));
-                return;
-            }
-
-            existing.setCategoryName(inputDto.getCategoryName().trim());
-            if (inputDto.getImages() != null) {
-                existing.setImages(inputDto.getImages());
-            }
-            existing.setStatus(inputDto.getStatus());
-
-            categoryService.update(existing, user.getId());
-
-            JsonUtil.writeJson(response, HttpServletResponse.SC_OK,
-                    ApiResponse.success("Cập nhật danh mục thành công", CategoryDto.fromEntity(existing)));
-        } catch (NumberFormatException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "ID danh mục không hợp lệ"));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
-        } catch (Exception e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    ApiResponse.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi cập nhật danh mục: " + e.getMessage()));
-        }
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<CategoryDto>> createCategory(@Valid @RequestBody CategoryDto dto) {
+        Category created = categoryService.create(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(CategoryDto.fromEntity(created)));
     }
 
-    @Override
-    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = AuthUtil.currentUser(request);
-        if (user == null) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập"));
-            return;
-        }
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<CategoryDto> updateCategory(@PathVariable("id") Integer id,
+                                                   @Valid @RequestBody CategoryDto dto) {
+        Category updated = categoryService.update(id, dto);
+        return ApiResponse.success(CategoryDto.fromEntity(updated));
+    }
 
-        String pathInfo = request.getPathInfo();
-        if (pathInfo == null || pathInfo.length() <= 1) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "Thiếu ID danh mục cần xóa"));
-            return;
-        }
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Void> deleteCategory(@PathVariable("id") Integer id) {
+        categoryService.delete(id);
+        return ApiResponse.success("Xóa danh mục thành công", null);
+    }
 
-        try {
-            int id = Integer.parseInt(pathInfo.substring(1));
-            categoryService.delete(id, user.getId());
-            JsonUtil.writeJson(response, HttpServletResponse.SC_OK,
-                    ApiResponse.success("Xóa danh mục thành công", null));
-        } catch (NumberFormatException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, "ID danh mục không hợp lệ"));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_BAD_REQUEST,
-                    ApiResponse.error(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
-        } catch (Exception e) {
-            JsonUtil.writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    ApiResponse.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi xóa danh mục: " + e.getMessage()));
-        }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotFoundOrBadRequest(IllegalArgumentException ex) {
+        int code = ex.getMessage().contains("Không tìm thấy") ? HttpStatus.NOT_FOUND.value() : HttpStatus.BAD_REQUEST.value();
+        return ResponseEntity.status(code).body(ApiResponse.error(code, ex.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConflict(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(HttpStatus.CONFLICT.value(), ex.getMessage()));
     }
 }

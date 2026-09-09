@@ -1,13 +1,33 @@
 package vn.iotstar.service.impl;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vn.iotstar.dao.ICategoryDao;
 import vn.iotstar.dao.impl.CategoryDao;
+import vn.iotstar.dto.CategoryDto;
 import vn.iotstar.entity.Category;
+import vn.iotstar.entity.Role;
+import vn.iotstar.entity.User;
+import vn.iotstar.repository.CategoryRepository;
+import vn.iotstar.repository.ProductRepository;
+import vn.iotstar.repository.UserRepository;
+import vn.iotstar.service.CategoryService;
 import vn.iotstar.service.ICategoryService;
 
 import java.util.List;
+import java.util.Optional;
 
-public class CategoryServiceImpl implements ICategoryService {
+@Service
+@Transactional
+public class CategoryServiceImpl implements CategoryService, ICategoryService {
+
+    private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
     private final ICategoryDao categoryDao;
 
     public CategoryServiceImpl() {
@@ -16,88 +36,155 @@ public class CategoryServiceImpl implements ICategoryService {
 
     public CategoryServiceImpl(ICategoryDao categoryDao) {
         this.categoryDao = categoryDao;
+        this.categoryRepository = null;
+        this.productRepository = null;
+        this.userRepository = null;
+    }
+
+    @Autowired
+    public CategoryServiceImpl(CategoryRepository categoryRepository,
+                               ProductRepository productRepository,
+                               UserRepository userRepository) {
+        this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
+        this.userRepository = userRepository;
+        this.categoryDao = null;
+    }
+
+    // --- Phương thức Spring Boot CategoryService mới ---
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public Category create(CategoryDto dto) {
+        if (dto.getCategoryName() == null || dto.getCategoryName().isBlank()) {
+            throw new IllegalArgumentException("Tên danh mục không được để trống");
+        }
+        User admin = userRepository.findByRole(Role.ADMIN)
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản quản trị viên trong hệ thống"));
+
+        if (categoryRepository.existsByCategoryNameIgnoreCaseAndOwnerRole(dto.getCategoryName().trim(), Role.ADMIN)) {
+            throw new IllegalArgumentException("Tên danh mục đã tồn tại");
+        }
+
+        Category category = new Category();
+        category.setCategoryName(dto.getCategoryName().trim());
+        category.setImages(dto.getImages());
+        category.setStatus(dto.getStatus() != 0 ? dto.getStatus() : 1);
+        category.setOwner(admin);
+
+        return categoryRepository.save(category);
     }
 
     @Override
-    public void insert(Category category, int ownerId) {
-        validateOwner(ownerId);
-        validate(category);
-        if (categoryDao.findByCategoryName(category.getCategoryName(), ownerId) != null) {
-            throw new IllegalArgumentException("Tên danh mục đã tồn tại trong tài khoản của bạn");
+    @PreAuthorize("hasRole('ADMIN')")
+    public Category update(Integer id, CategoryDto dto) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy danh mục với ID: " + id));
+
+        if (dto.getCategoryName() == null || dto.getCategoryName().isBlank()) {
+            throw new IllegalArgumentException("Tên danh mục không được để trống");
         }
-        categoryDao.insert(category, ownerId);
+
+        if (categoryRepository.existsByCategoryNameIgnoreCaseAndOwnerRoleAndCategoryIdNot(
+                dto.getCategoryName().trim(), Role.ADMIN, id)) {
+            throw new IllegalArgumentException("Tên danh mục đã tồn tại");
+        }
+
+        category.setCategoryName(dto.getCategoryName().trim());
+        if (dto.getImages() != null && !dto.getImages().isBlank()) {
+            category.setImages(dto.getImages());
+        }
+        category.setStatus(dto.getStatus());
+
+        return categoryRepository.save(category);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public void delete(Integer id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy danh mục với ID: " + id));
+
+        long productCount = productRepository.countByCategory_CategoryId(id);
+        if (productCount > 0) {
+            throw new IllegalStateException("Không thể xóa danh mục đang chứa " + productCount + " sản phẩm liên kết");
+        }
+
+        categoryRepository.delete(category);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Category> findById(Integer id) {
+        return categoryRepository.findById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Category> searchAdmin(String keyword, Pageable pageable) {
+        if (keyword != null && !keyword.isBlank()) {
+            return categoryRepository.findByOwnerRoleAndCategoryNameContainingIgnoreCase(
+                    Role.ADMIN, keyword.trim(), pageable);
+        }
+        return categoryRepository.findByOwnerRole(Role.ADMIN, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Category> findAllActiveAdmin() {
+        return categoryRepository.findByOwnerRoleAndStatusOrderByCategoryNameAsc(Role.ADMIN, 1);
+    }
+
+    // --- Phương thức ICategoryService legacy ---
+
+    @Override
+    public void insert(Category category, int ownerId) {
+        if (categoryDao != null) {
+            categoryDao.insert(category, ownerId);
+        }
     }
 
     @Override
     public void update(Category category, int ownerId) {
-        validateOwner(ownerId);
-        validate(category);
-        Category current = categoryDao.findById(category.getCategoryId(), ownerId);
-        if (current == null) {
-            throw new IllegalArgumentException("Không tìm thấy danh mục hoặc bạn không có quyền sửa");
+        if (categoryDao != null) {
+            categoryDao.update(category, ownerId);
         }
-        Category duplicate = categoryDao.findByCategoryName(category.getCategoryName(), ownerId);
-        if (duplicate != null && duplicate.getCategoryId() != category.getCategoryId()) {
-            throw new IllegalArgumentException("Tên danh mục đã tồn tại trong tài khoản của bạn");
-        }
-        categoryDao.update(category, ownerId);
     }
 
     @Override
     public void delete(int categoryId, int ownerId) {
-        validateOwner(ownerId);
-        categoryDao.delete(categoryId, ownerId);
+        if (categoryDao != null) {
+            categoryDao.delete(categoryId, ownerId);
+        }
     }
 
     @Override
     public Category findById(int categoryId, int ownerId) {
-        validateOwner(ownerId);
-        return categoryDao.findById(categoryId, ownerId);
+        return categoryDao != null ? categoryDao.findById(categoryId, ownerId) : null;
     }
 
     @Override
     public Category findByCategoryName(String name, int ownerId) {
-        validateOwner(ownerId);
-        return name == null || name.isBlank() ? null : categoryDao.findByCategoryName(name.trim(), ownerId);
+        return categoryDao != null ? categoryDao.findByCategoryName(name, ownerId) : null;
     }
 
     @Override
     public List<Category> findAll(int ownerId) {
-        validateOwner(ownerId);
-        return categoryDao.findAll(ownerId);
+        return categoryDao != null ? categoryDao.findAll(ownerId) : List.of();
     }
 
     @Override
     public List<Category> searchByName(String keyword, int ownerId) {
-        validateOwner(ownerId);
-        return keyword == null || keyword.isBlank() ? findAll(ownerId) : categoryDao.searchByName(keyword, ownerId);
+        return categoryDao != null ? categoryDao.searchByName(keyword, ownerId) : List.of();
     }
 
     @Override
     public List<Category> findAll(int ownerId, int page, int pageSize) {
-        validateOwner(ownerId);
-        return categoryDao.findAll(ownerId, page, pageSize);
+        return categoryDao != null ? categoryDao.findAll(ownerId, page, pageSize) : List.of();
     }
 
     @Override
     public int count(int ownerId) {
-        validateOwner(ownerId);
-        return categoryDao.count(ownerId);
-    }
-
-    private void validateOwner(int ownerId) {
-        if (ownerId <= 0) {
-            throw new IllegalArgumentException("Tài khoản sở hữu danh mục không hợp lệ");
-        }
-    }
-
-    private void validate(Category category) {
-        if (category == null || category.getCategoryName() == null || category.getCategoryName().isBlank()) {
-            throw new IllegalArgumentException("Tên danh mục không được để trống");
-        }
-        category.setCategoryName(category.getCategoryName().trim());
-        if (category.getStatus() != 0 && category.getStatus() != 1) {
-            throw new IllegalArgumentException("Trạng thái danh mục không hợp lệ");
-        }
+        return categoryDao != null ? categoryDao.count(ownerId) : 0;
     }
 }
